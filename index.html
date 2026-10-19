@@ -1,0 +1,3833 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Kyoto Plan">
+  <title>Kyoto Univ & ADB Plan — AI Productivity</title>
+  <!-- SheetJS for CSV & Excel (.xlsx / .xls) Parsing on Netlify -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg-outer: #EAE6FD;
+      --bg-app: #FFFFFF;
+      --text: #1E1B2E;
+      --sub: #8C8A9E;
+      --body: #4A485D;
+      --primary: #5E5CE6;
+      --primary-soft: #ECE8FF;
+      --blue: #4CA8FF;
+      --blue-soft: #EAF5FF;
+      --pink: #FF6B9E;
+      --pink-soft: #FDF0F5;
+      --peach: #F59E0B;
+      --peach-soft: #FDF6EC;
+      --green: #10B981;
+      --green-dark: #047857;
+      --green-soft: #E8FBF3;
+      --red: #EF4444;
+      --red-soft: #FEF2F2;
+      --input-bg: #F4F5F9;
+      --border: #EFEFF6;
+      --radius-xl: 26px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+      --font: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "SF Pro Display", "Sukhumvit Set", "Kanit", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: var(--bg-outer);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 460px;
+      background: var(--bg-app);
+      min-height: 100vh;
+      padding: max(16px, env(safe-area-inset-top)) 20px max(96px, env(safe-area-inset-bottom)) 20px;
+      box-shadow: 0 12px 48px rgba(94, 92, 230, 0.12);
+      position: relative;
+    }
+
+    @media (min-width: 500px) {
+      body { padding: 24px 12px; }
+      .app-shell {
+        min-height: calc(100vh - 48px);
+        border-radius: 36px;
+      }
+    }
+
+    svg.ico {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    /* Top Dashboard Pill Header (Matches Reference) */
+    header {
+      background: #F8F8FC;
+      border-radius: 20px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar-badge {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    h1 {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      line-height: 1.2;
+    }
+
+    .sub-head {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--sub);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .btn-icon-top {
+      background: #FFFFFF;
+      color: var(--text);
+      border: none;
+      height: 36px;
+      padding: 0 11px;
+      border-radius: 99px;
+      font-size: 11.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(30, 27, 46, 0.05);
+      transition: transform 0.15s ease;
+    }
+    .btn-icon-top.circle {
+      width: 36px;
+      padding: 0;
+    }
+    .btn-icon-top:active { transform: scale(0.93); }
+
+    .api-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #CBD5E1;
+      display: inline-block;
+    }
+    .api-dot.connected {
+      background: var(--green);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Clean Segmented Pill Navigation */
+    .nav-segment {
+      display: flex;
+      background: var(--input-bg);
+      padding: 4px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 8px 6px;
+      border: none;
+      background: transparent;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--sub);
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn.active {
+      background: #FFFFFF;
+      color: var(--primary);
+      box-shadow: 0 2px 10px rgba(94, 92, 230, 0.1);
+    }
+
+    /* Section Headings */
+    .section-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.2px;
+    }
+
+    /* ========================================== */
+    /* BENTO PROGRESS GRID (MATCHES DRIBBBLE REF) */
+    /* ========================================== */
+    .bento-progress-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .bento-card-left {
+      background: var(--primary-soft);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 168px;
+    }
+
+    .bento-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .bento-icon-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.75);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bento-big-num {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .bento-focus-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.35;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .bento-focus-desc {
+      font-size: 11px;
+      color: var(--body);
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .bento-mini-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--body);
+    }
+
+    .bento-card-right {
+      background: #F2F4FF;
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 168px;
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 82px;
+      height: 82px;
+      margin-bottom: 10px;
+    }
+
+    .ring-svg {
+      transform: rotate(-90deg);
+      width: 82px;
+      height: 82px;
+    }
+
+    .ring-bg {
+      fill: none;
+      stroke: #FF9EBB;
+      stroke-width: 8;
+      opacity: 0.45;
+    }
+
+    .ring-bar {
+      fill: none;
+      stroke: #58B9FF;
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.4s ease;
+    }
+
+    .ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .ring-card-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .ring-card-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--sub);
+      margin-top: 2px;
+    }
+
+    /* ========================================== */
+    /* MINIMAL BORDERLESS CALENDAR STRIP          */
+    /* ========================================== */
+    .cal-right-controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .today-indicator-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      padding: 5px 11px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-open-calendar {
+      background: var(--input-bg);
+      color: var(--body);
+      border: none;
+      padding: 5px 11px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .day-strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 4px 0 12px 0;
+      margin-bottom: 10px;
+      scrollbar-width: none;
+      scroll-behavior: smooth;
+    }
+    .day-strip::-webkit-scrollbar { display: none; }
+
+    .day-pill {
+      flex: 0 0 auto;
+      width: 52px;
+      background: transparent;
+      border: none;
+      border-radius: 16px;
+      padding: 6px 2px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .day-pill-sub {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--sub);
+    }
+    .day-pill.active .day-pill-sub {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .day-pill-main {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text);
+      transition: all 0.2s ease;
+    }
+
+    .day-pill.is-today .day-pill-main {
+      background: var(--green-soft);
+      color: var(--green-dark);
+    }
+
+    .day-pill.active .day-pill-main {
+      background: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 6px 14px rgba(94, 92, 230, 0.35);
+    }
+
+    .day-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: transparent;
+    }
+    .day-dot.done-all { background: var(--green); }
+    .day-dot.has-pending { background: var(--primary); opacity: 0.55; }
+
+    /* Compact Soft Rollover Banner */
+    .ai-rollover-box {
+      background: var(--peach-soft);
+      border-radius: 18px;
+      padding: 11px 14px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .ai-rollover-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #B45309;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-ai-rollover {
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      padding: 7px 13px;
+      border-radius: 99px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 10px rgba(94, 92, 230, 0.25);
+    }
+    .btn-ai-rollover:active { transform: scale(0.96); }
+
+    /* Sub-tabs & Action Bar */
+    .tasks-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .sub-tab-bar {
+      display: inline-flex;
+      background: var(--input-bg);
+      padding: 3.5px;
+      border-radius: 12px;
+    }
+
+    .sub-tab-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--sub);
+      background: transparent;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .sub-tab-btn.active {
+      background: #FFFFFF;
+      color: var(--text);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .main-plan-toolbar {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-main-tool {
+      border: none;
+      background: var(--input-bg);
+      color: var(--body);
+      border-radius: 99px;
+      padding: 7px 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .btn-main-tool.ai-btn {
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+    .btn-main-tool.ai-btn.active {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+    .btn-main-tool:active { transform: scale(0.95); }
+
+    /* ========================================== */
+    /* PASTEL TASK CARDS (MATCHES DRIBBBLE REF)   */
+    /* ========================================== */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .task-item {
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      border: 1.5px solid transparent;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    /* Pastel Themes matching Reference Image */
+    .task-item.pastel-pink { background: var(--pink-soft); }
+    .task-item.pastel-pink .task-cat-icon { background: #FAD8E6; color: #D6336C; }
+
+    .task-item.pastel-blue { background: var(--blue-soft); }
+    .task-item.pastel-blue .task-cat-icon { background: #D3ECFA; color: #1C7ED6; }
+
+    .task-item.pastel-peach { background: var(--peach-soft); }
+    .task-item.pastel-peach .task-cat-icon { background: #FAE5C8; color: #D97706; }
+
+    .task-item.pastel-purple { background: var(--primary-soft); }
+    .task-item.pastel-purple .task-cat-icon { background: #DDD6FE; color: var(--primary); }
+
+    .task-item.done {
+      opacity: 0.65;
+      filter: grayscale(15%);
+    }
+
+    .task-item.has-conflict {
+      border-color: var(--peach);
+    }
+
+    .task-card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .task-cat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .task-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-cat-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--sub);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .task-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.35;
+    }
+
+    .task-item.done .task-title {
+      text-decoration: line-through;
+      color: var(--sub);
+    }
+
+    .btn-task-more {
+      border: none;
+      background: rgba(255, 255, 255, 0.65);
+      color: var(--body);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .task-card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-left: 56px;
+    }
+
+    .status-check-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--body);
+    }
+
+    .circle-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #FFFFFF;
+      border: 2px solid #CBD5E1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .task-item.done .circle-check {
+      background: var(--text);
+      border-color: var(--text);
+      color: #FFFFFF;
+    }
+
+    .pill-time {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--body);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .pill-badge-mini {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--primary);
+    }
+
+    .conflict-alert {
+      display: flex;
+      font-size: 11px;
+      font-weight: 700;
+      color: #B45309;
+      background: rgba(255, 255, 255, 0.75);
+      padding: 6px 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Expandable Task Edit Sheet */
+    .task-drawer {
+      display: none;
+      margin-top: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.88);
+      border-radius: 16px;
+      animation: fadeIn 0.15s ease;
+    }
+    .task-item.open-drawer .task-drawer { display: block; }
+
+    .task-drawer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .btn-mini-act {
+      border: none;
+      background: #FFFFFF;
+      color: var(--body);
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 7px 12px;
+      border-radius: 99px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .btn-mini-act:active { transform: scale(0.96); }
+    .btn-mini-act.rollover { color: var(--primary); background: var(--primary-soft); }
+    .btn-mini-act.cal { color: #1C7ED6; background: var(--blue-soft); }
+    .btn-mini-act.danger { color: var(--red); background: var(--red-soft); }
+
+    .time-control-grid {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .time-picker-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--sub);
+    }
+
+    .time-input-mini, .unit-select-mini {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      padding: 6px 10px;
+      border: none;
+      border-radius: 10px;
+      background: var(--input-bg);
+      font-family: inherit;
+      outline: none;
+    }
+
+    /* Gemini AI Consultant Drawer */
+    .gemini-chat-drawer {
+      display: none;
+      background: #F8F7FF;
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      margin-bottom: 16px;
+      animation: fadeIn 0.2s ease;
+    }
+    .gemini-chat-drawer.open { display: block; }
+
+    .gemini-drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .gemini-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .gemini-quick-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      scrollbar-width: none;
+    }
+    .gemini-quick-chips::-webkit-scrollbar { display: none; }
+
+    .gemini-chip {
+      flex: 0 0 auto;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      background: #FFFFFF;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 99px;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(94, 92, 230, 0.08);
+    }
+    .gemini-chip:active {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+
+    .gemini-messages-box {
+      max-height: 240px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 2px;
+      margin-bottom: 10px;
+    }
+
+    .chat-msg {
+      padding: 10px 13px;
+      border-radius: 16px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      max-width: 92%;
+      word-wrap: break-word;
+    }
+    .chat-msg.ai {
+      background: #FFFFFF;
+      color: var(--text);
+      align-self: flex-start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .chat-msg.user {
+      background: var(--primary);
+      color: #FFFFFF;
+      align-self: flex-end;
+      font-weight: 600;
+    }
+
+    .proposed-plan-card {
+      margin-top: 8px;
+      background: var(--primary-soft);
+      border-radius: 14px;
+      padding: 10px;
+    }
+
+    .proposed-task-row {
+      font-size: 11.5px;
+      padding: 7px 10px;
+      background: #FFFFFF;
+      border-radius: 10px;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .proposed-plan-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .btn-apply-plan {
+      flex: 1;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 10px;
+      border-radius: 99px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-apply-plan.secondary { background: var(--blue); }
+
+    .gemini-input-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .gemini-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 99px;
+      font-size: 12.5px;
+      font-family: inherit;
+      outline: none;
+      background: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .btn-gemini-send {
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      padding: 0 18px;
+      border-radius: 99px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Extra Task Form */
+    .extra-task-builder {
+      background: #F8F8FC;
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .input-row-with-kw {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .input-task-text {
+      width: 100%;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      background: var(--input-bg);
+      color: var(--text);
+    }
+
+    .btn-toggle-kw {
+      background: #FFFFFF;
+      color: var(--primary);
+      border: none;
+      padding: 0 12px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .keywords-drawer {
+      display: none;
+      background: #FFFFFF;
+      border-radius: 14px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .keywords-drawer.open { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .keywords-scroll-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .kw-chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 99px;
+      background: var(--input-bg);
+      color: var(--body);
+      cursor: pointer;
+    }
+    .kw-chip:active {
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .btn-primary-pill {
+      width: 100%;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      padding: 12px;
+      border-radius: 99px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 6px 16px rgba(94, 92, 230, 0.28);
+      transition: transform 0.15s ease;
+    }
+    .btn-primary-pill:active { transform: scale(0.98); }
+
+    /* Floating Action Button (+ Button from Reference) */
+    .fab-add {
+      position: fixed;
+      bottom: max(24px, env(safe-area-inset-bottom));
+      right: max(24px, calc(50% - 206px));
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #FFFFFF;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(94, 92, 230, 0.42);
+      z-index: 500;
+      transition: transform 0.18s ease;
+    }
+    .fab-add:active { transform: scale(0.92); }
+
+    /* Dashboard & Analytics */
+    .soft-panel {
+      background: #F8F8FC;
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+
+    .chart-bars {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 125px;
+      padding: 16px 4px 6px 4px;
+      gap: 6px;
+      overflow-x: auto;
+    }
+
+    .chart-col {
+      flex: 1;
+      min-width: 34px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .chart-bar-wrap {
+      width: 100%;
+      max-width: 22px;
+      background: #EAE8F5;
+      border-radius: 99px;
+      height: 82px;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    .chart-bar-fill {
+      width: 100%;
+      background: var(--primary);
+      border-radius: 99px;
+      transition: height 0.3s ease;
+    }
+    .chart-bar-fill.overload { background: var(--pink); }
+    .chart-bar-fill.complete { background: var(--green); }
+
+    .chart-val {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: var(--sub);
+      margin-bottom: 4px;
+    }
+
+    .chart-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--sub);
+      margin-top: 6px;
+      white-space: nowrap;
+    }
+
+    .countdown-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .cd-card {
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+    .cd-card:nth-child(1) { background: var(--primary-soft); }
+    .cd-card:nth-child(2) { background: var(--blue-soft); }
+    .cd-card:nth-child(3) { background: var(--pink-soft); }
+    .cd-card:nth-child(4) { background: var(--peach-soft); }
+
+    .cd-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--body);
+      margin-bottom: 4px;
+    }
+
+    .cd-number {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+
+    .cd-unit {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--body);
+    }
+
+    .cd-target-date {
+      font-size: 11px;
+      color: var(--sub);
+      margin-top: 2px;
+    }
+
+    .sheet-link-banner {
+      background: #F8F8FC;
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* 7-Phase Timeline Cards */
+    .phase-card {
+      background: #F8F8FC;
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .phase-card.active-phase {
+      background: var(--primary-soft);
+    }
+    .phase-badge {
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: #FFFFFF;
+      color: var(--sub);
+    }
+    .phase-badge.current {
+      background: var(--primary);
+      color: #FFFFFF;
+    }
+    .phase-details {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      font-size: 12.5px;
+      color: var(--body);
+      line-height: 1.6;
+    }
+    .phase-card.open .phase-details { display: block; }
+    .milestone-pill {
+      margin-top: 10px;
+      background: #FFFFFF;
+      color: var(--primary);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+
+    /* Bottom-Sheet Modals (Matches 3rd Screen in Reference) */
+    .cal-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 27, 46, 0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 900;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    @media (min-width: 520px) {
+      .cal-modal-backdrop { align-items: center; padding: 16px; }
+    }
+    .cal-modal-backdrop.open { display: flex; }
+
+    .cal-modal-card {
+      background: #FFFFFF;
+      width: 100%;
+      max-width: 460px;
+      max-height: 88vh;
+      overflow-y: auto;
+      border-radius: 30px 30px 0 0;
+      padding: 22px 20px max(26px, env(safe-area-inset-bottom)) 20px;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+      animation: slideUp 0.22s ease;
+    }
+    @media (min-width: 520px) {
+      .cal-modal-card { border-radius: 28px; padding: 24px; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(24px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .cal-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .cal-month-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-month-Switch {
+      background: var(--input-bg);
+      border: none;
+      border-radius: 99px;
+      padding: 7px 13px;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--body);
+    }
+
+    .cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--sub);
+      margin-bottom: 8px;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+
+    .cal-cell {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .cal-cell.empty { cursor: default; }
+    .cal-cell.is-today {
+      background: var(--green-soft);
+      color: var(--green-dark);
+    }
+    .cal-cell.is-selected {
+      background: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 4px 10px rgba(94, 92, 230, 0.3);
+    }
+    .cal-cell-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      margin-top: 2px;
+    }
+
+    .modal-option-box {
+      border: 1.5px solid transparent;
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: var(--input-bg);
+    }
+    .modal-option-box.selected {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+    .modal-option-box input[type="radio"] {
+      margin-top: 3px;
+      accent-color: var(--primary);
+    }
+
+    .field-label {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--sub);
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .import-staging-list {
+      max-height: 160px;
+      overflow-y: auto;
+      border-radius: 16px;
+      padding: 8px;
+      background: var(--input-bg);
+      margin: 8px 0 14px 0;
+    }
+
+    .staging-item {
+      background: #FFFFFF;
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      font-size: 11.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .file-drop-zone {
+      border: 2px dashed #C5BFFC;
+      background: var(--primary-soft);
+      border-radius: 18px;
+      padding: 20px 12px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+
+    /* ===== + speed dial, full-screen Gemini popup ===== */
+    .fab-backdrop{display:none;position:fixed;inset:0;background:rgba(30,27,46,.4);backdrop-filter:blur(2px);z-index:480}
+    .fab-backdrop.open{display:block}
+    .fab-menu{display:none;position:fixed;right:max(24px,calc(50% - 206px));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 70px);flex-direction:column;gap:10px;align-items:flex-end;z-index:510}
+    .fab-menu.open{display:flex}
+    .fab-item{display:flex;align-items:center;gap:12px;min-width:250px;padding:10px 18px 10px 10px;background:#fff;border:none;border-radius:20px;text-align:left;cursor:pointer;font-family:inherit;box-shadow:0 8px 24px rgba(30,27,46,.18)}
+    .fab-item:active{transform:scale(.97)}
+    .fab-ic{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .fab-ic .ico{width:22px;height:22px}
+    .fab-item b{display:block;font-size:14.5px;color:var(--text)}
+    .fab-item small{font-size:11.5px;color:var(--sub)}
+    .fab-add{z-index:520}
+    .fab-add.open{transform:rotate(45deg)}
+    #view-daily{padding-bottom:96px}
+    .gemini-chat-drawer.open{display:flex;flex-direction:column;position:fixed;inset:0;z-index:880;margin:0;border-radius:0;background:#F8F7FF;padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom))}
+    .gemini-chat-drawer.open>*{width:100%;max-width:680px;margin-left:auto;margin-right:auto;flex-shrink:0}
+    .gemini-chat-drawer.open .gemini-messages-box{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}
+    .gemini-chat-drawer.open .chat-msg{font-size:15px;line-height:1.65}
+    .gemini-chat-drawer.open .gemini-input{font-size:16px;min-height:46px}
+    .gemini-chat-drawer.open .gemini-title-wrap{font-size:16px}
+    .gemini-chat-drawer.open .gemini-quick-chips{overflow-x:auto;flex-wrap:nowrap;padding-bottom:6px}
+    .gemini-chat-drawer.open .gemini-chip{flex-shrink:0;white-space:nowrap}
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- Top Dashboard Pill Bar -->
+    <header>
+      <div class="header-left">
+        <div class="avatar-badge">🎓</div>
+        <div>
+          <h1>Kyoto Plan</h1>
+          <div class="sub-head" id="selectedDateLabel">15 ต.ค. 2026</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon-top" id="btnTopApiKey" onclick="openApiKeyModal()" title="ตั้งค่า Gemini API Key">
+          <span class="api-dot" id="apiKeyStatusDot"></span>
+          <span>AI Key</span>
+        </button>
+        <button class="btn-icon-top circle" onclick="openResetModal()" title="รีเซ็ตข้อมูล">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Segment -->
+    <div class="nav-segment">
+      <button class="nav-btn active" onclick="switchView('daily')">
+        <span>ภารกิจวันนี้</span>
+      </button>
+      <button class="nav-btn" onclick="switchView('dashboard')">
+        <span>ภาพรวม</span>
+      </button>
+      <button class="nav-btn" onclick="switchView('timeline')">
+        <span>แผน 7 ระยะ</span>
+      </button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 1: DAILY MISSIONS                      -->
+    <!-- ========================================== -->
+    <div id="view-daily">
+
+      <div class="section-title-row">
+        <span class="section-title">Your progress task</span>
+        <span class="today-indicator-chip" id="pillTotalHours">⏳ 6.0 ชม.</span>
+      </div>
+
+      <!-- 2-Column Bento Grid (Matches Reference Image) -->
+      <div class="bento-progress-grid">
+        <!-- Left Lavender Card -->
+        <div class="bento-card-left">
+          <div>
+            <div class="bento-top-row">
+              <div class="bento-icon-circle">
+                <svg class="ico" style="width:16px;height:16px;" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              </div>
+              <span class="bento-big-num" id="bentoTaskTotalNum">4</span>
+            </div>
+            <span id="aiDayBadge" style="display:none;"></span>
+            <div class="bento-focus-title" id="aiFocusHead">ปูพื้นฐานเข้มข้น</div>
+            <div class="bento-focus-desc" id="aiFocusBody">จับเวลาทำข้อสอบและสำรวจแล็บวิจัย</div>
+          </div>
+          <div class="bento-mini-list" id="bentoPreviewList"></div>
+        </div>
+
+        <!-- Right Pastel Blue Donut Card -->
+        <div class="bento-card-right">
+          <div class="ring-wrap">
+            <svg class="ring-svg" viewBox="0 0 68 68">
+              <circle class="ring-bg" cx="34" cy="34" r="26"></circle>
+              <circle class="ring-bar" id="dailyRingBar" cx="34" cy="34" r="26" stroke-dasharray="163.36" stroke-dashoffset="163.36"></circle>
+            </svg>
+            <div class="ring-label" id="dailyRingText">0%</div>
+          </div>
+          <div class="ring-card-title">My Progress Task</div>
+          <div class="ring-card-sub" id="pillDoneRatio">เสร็จ 0 จาก 4 งาน</div>
+        </div>
+      </div>
+
+      <!-- List Task Header + Calendar Controls -->
+      <div class="section-title-row">
+        <span class="section-title">List task</span>
+        <div class="cal-right-controls">
+          <div class="today-indicator-chip" onclick="jumpToToday()" title="กลับมาวันนี้">
+            <span id="todayBannerText">วันนี้</span>
+          </div>
+          <button class="btn-open-calendar" onclick="openCalendarModal()">
+            <svg class="ico" style="width:14px;height:14px;" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>ปฏิทิน</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Borderless Date Strip with Purple Active Circle -->
+      <div class="day-strip" id="dayStripContainer"></div>
+
+      <!-- Compact Rollover Bar -->
+      <div class="ai-rollover-box" id="aiRolloverBanner" style="display: none;">
+        <div class="ai-rollover-title">
+          <span>✨ <span id="rolloverCountBadge">ค้าง 2 งาน</span></span>
+          <span id="aiRolloverAdvice" style="display:none;"></span>
+        </div>
+        <button class="btn-ai-rollover" onclick="aiRolloverAllIncomplete()">
+          <span>ย้ายไปพรุ่งนี้</span>
+          <svg class="ico" style="width:14px;height:14px;" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- Sub-tab Switcher & AI Coach Trigger -->
+      <div class="tasks-header-bar">
+        <div class="sub-tab-bar">
+          <button class="sub-tab-btn active" id="subTabMain" onclick="switchSubTab('main')">
+            งานหลัก (<span id="mainCountLbl">0</span>)
+          </button>
+          <button class="sub-tab-btn" id="subTabExtra" onclick="switchSubTab('extra')">
+            งานเสริม (<span id="extraCountLbl">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Study Tasks -->
+      <div id="subViewMain">
+        <div class="task-list" id="mainTaskListContainer"></div>
+      </div>
+
+      <!-- Extra Tasks -->
+      <div id="subViewExtra" style="display: none;">
+        <div class="task-list" id="extraTaskListContainer"></div>
+      </div>
+
+      <div class="fab-backdrop" id="fabBackdrop" onclick="toggleFab(false)"></div>
+      <div class="fab-menu" id="fabMenu">
+        <button type="button" class="fab-item" onclick="fabGo('manual')"><span class="fab-ic" style="background:#ECE8FF; color:#5E5CE6;"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span><span><b>เพิ่มงานเอง</b><small>งานหลักหรืองานเสริม</small></span></button>
+        <button type="button" class="fab-item" onclick="fabGo('gemini')"><span class="fab-ic" style="background:#FFF0F4; color:#D6336C;"><svg class="ico" viewBox="0 0 24 24"><path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/></svg></span><span><b>คุยกับโค้ช AI</b><small>ถาม ปรึกษา และให้เสนอแผน</small></span></button>
+        <button type="button" class="fab-item" onclick="fabGo('import')"><span class="fab-ic" style="background:#E8F4FD; color:#1C7ED6;"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span><span><b>นำเข้าแผน</b><small>ข้อความ · CSV · Excel</small></span></button>
+      </div>
+      <button type="button" class="fab-add" id="fabBtn" onclick="toggleFab()" aria-label="เมนูเพิ่มงาน" title="เพิ่มงาน / ถาม AI / นำเข้าแผน">
+        <svg class="ico" style="width:24px;height:24px;stroke-width:2.5;" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: PRODUCTIVITY DASHBOARD              -->
+    <!-- ========================================== -->
+    <div id="view-dashboard" style="display: none;">
+      <div class="soft-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:15px; font-weight:800;">ชั่วโมงเรียนรายวัน</span>
+          <span class="today-indicator-chip" id="weeklyCompletionPill">สำเร็จ 0%</span>
+        </div>
+        <div class="chart-bars" id="weeklyChartContainer"></div>
+        <div style="margin-top:12px; font-size:12px; color:var(--body); background:#FFFFFF; padding:10px 14px; border-radius:14px;" id="aiDashboardInsight">
+          ตารางสมดุลดี แนะนำให้โฟกัส IELTS ช่วงเช้า
+        </div>
+      </div>
+
+      <div class="countdown-grid">
+        <div class="cd-card">
+          <div class="cd-header">จบ SPRINT</div>
+          <div><span class="cd-number">17</span> <span class="cd-unit">วัน</span></div>
+          <div class="cd-target-date">31 ต.ค. 2026</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-header">สอบ IELTS 6.5</div>
+          <div><span class="cd-number">78</span> <span class="cd-unit">วัน</span></div>
+          <div class="cd-target-date">ปลาย ธ.ค. 2026</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-header">ยื่นทุน ADB-JSP</div>
+          <div><span class="cd-number">7</span> <span class="cd-unit">เดือน</span></div>
+          <div class="cd-target-date">พ.ค. – มิ.ย. 2027</div>
+        </div>
+        <div class="cd-card">
+          <div class="cd-header">เปิดเทอม ม.เกียวโต</div>
+          <div><span class="cd-number">18</span> <span class="cd-unit">เดือน</span></div>
+          <div class="cd-target-date">เม.ย. 2028</div>
+        </div>
+      </div>
+
+      <a class="sheet-link-banner" href="https://docs.google.com/spreadsheets/d/1CAE2pm-3C9PtKZjdAtdE9MmppCl4eUvkoLZz85F1Nls/edit" target="_blank">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="bento-icon-circle" style="background:var(--green-soft); color:var(--green-dark);">
+            <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          </div>
+          <div>
+            <div style="font-size:14px; font-weight:800;">Google Sheet ฉบับเต็ม</div>
+            <div style="font-size:11.5px; color:var(--sub);">ตาราง Daily · IELTS Tracker</div>
+          </div>
+        </div>
+        <svg class="ico" style="color:var(--sub);" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: 7-PHASE TIMELINE                    -->
+    <!-- ========================================== -->
+    <div id="view-timeline" style="display: none;">
+      <div class="phase-card active-phase open" onclick="this.classList.toggle('open')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="phase-badge current">PHASE 1 · กำลังทำ</span>
+          <span style="font-size:11.5px; font-weight:700; color:var(--primary);">14 – 31 ต.ค. 2026</span>
+        </div>
+        <div style="font-size:15px; font-weight:800;">1. ปูพื้นฐานเข้มข้น (Foundation Sprint)</div>
+        <div class="phase-details">
+          • ทำ Cambridge 16 Test 1–4 (L&R) พร้อมบันทึก Error Log<br>
+          • สำรวจแล็บ Dept. of Urban Management และอ่านเปเปอร์ 5–10 ฉบับ<br>
+          • ร่าง Problem Statement 1–2 หน้า ด้าน Urban Mobility / Resilience
+          <div class="milestone-pill">🎯 รู้จุดอ่อน IELTS + ได้ Proposal Brief 1 หน้า</div>
+        </div>
+      </div>
+
+      <div class="phase-card" onclick="this.classList.toggle('open')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="phase-badge">PHASE 2</span>
+          <span style="font-size:11.5px; font-weight:600; color:var(--sub);">1 – 30 พ.ย. 2026</span>
+        </div>
+        <div style="font-size:15px; font-weight:800;">2. เจาะลึกโจทย์ & ร่าง Proposal ฉบับแรก</div>
+        <div class="phase-details">
+          • ฝึกเขียน IELTS Writing Task 1 และ Task 2<br>
+          • ซ้อมพูด Speaking Part 1–3 อัดเสียงเช็ก Fluency<br>
+          • เขียน Research Proposal Draft แรกครบทุกบท
+          <div class="milestone-pill">🎯 ซ้อมสอบแตะ 6.0 + Proposal ร่างแรก 5–6 หน้า</div>
+        </div>
+      </div>
+
+      <div class="phase-card" onclick="this.classList.toggle('open')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="phase-badge">PHASE 3</span>
+          <span style="font-size:11.5px; font-weight:600; color:var(--sub);">ธ.ค. 2026 – ม.ค. 2027</span>
+        </div>
+        <div style="font-size:15px; font-weight:800;">3. สอบจริง IELTS & สรุปรูปเล่มวิจัย</div>
+        <div class="phase-details">
+          • ทำ Full Mock Test ครบ 4 ทักษะภายใต้เวลาจริง<br>
+          • สอบ IELTS Official Test ช่วงปลาย ธ.ค. 2026<br>
+          • Proofread เล่ม Research Proposal ฉบับสมบูรณ์พร้อม CV
+          <div class="milestone-pill">🎯 ได้ใบคะแนน IELTS 6.0–6.5</div>
+        </div>
+      </div>
+
+      <div class="phase-card" onclick="this.classList.toggle('open')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="phase-badge">PHASE 4</span>
+          <span style="font-size:11.5px; font-weight:600; color:var(--sub);">ก.พ. – พ.ค. 2027</span>
+        </div>
+        <div style="font-size:15px; font-weight:800;">4. ยื่นตรวจ AAO & ติดต่ออาจารย์ที่ปรึกษา</div>
+        <div class="phase-details">
+          • เตรียม Transcript, ใบปริญญา, IELTS และ Proposal ยื่นระบบ AAO<br>
+          • ส่งอีเมลติดต่ออาจารย์ที่ปรึกษาเป้าหมายเพื่อสัมภาษณ์เบื้องต้น<br>
+          • ขอ Letter of Provisional Acceptance และจดหมายรับรอง
+          <div class="milestone-pill">🎯 ได้รับการตอบรับจากอาจารย์ที่ปรึกษา</div>
+        </div>
+      </div>
+
+      <div class="phase-card" onclick="this.classList.toggle('open')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="phase-badge">PHASE 5</span>
+          <span style="font-size:11.5px; font-weight:600; color:var(--sub);">ปลาย พ.ค. – มิ.ย. 2027</span>
+        </div>
+        <div style="font-size:15px; font-weight:800;">5. ยื่นใบสมัครทางการ + ขอทุน ADB-JSP</div>
+        <div class="phase-details">
+          • กรอกใบสมัครออนไลน์ Graduate School of Engineering<br>
+          • แนบเอกสารทุน ADB-JSP และหนังสือรับรองการทำงาน<br>
+          • ส่งเอกสารตัวจริงทางไปรษณีย์ด่วนทันเดดไลน์ มิ.ย. 2027
+          <div class="milestone-pill">🎯 ยื่นชุดเอกสารเข้าเรียนและขอทุนสำเร็จ</div>
+        </div>
+      </div>
+
+      <div class="phase-card" onclick="this.classList.toggle('open')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="phase-badge">PHASE 6</span>
+          <span style="font-size:11.5px; font-weight:600; color:var(--sub);">ก.ค. – พ.ย. 2027</span>
+        </div>
+        <div style="font-size:15px; font-weight:800;">6. สอบสัมภาษณ์ & ประกาศผลทุน</div>
+        <div class="phase-details">
+          • ซ้อมนำเสนอสไลด์ Research Proposal และเก็งคำถาม<br>
+          • สอบสัมภาษณ์ออนไลน์กับคณะกรรมการภาควิชา Urban Management<br>
+          • รับหนังสือแจ้งผลจาก Kyoto University และทุน ADB-JSP
+          <div class="milestone-pill">🎯 ได้รับทุนเต็มจำนวน ADB-JSP</div>
+        </div>
+      </div>
+
+      <div class="phase-card" onclick="this.classList.toggle('open')">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="phase-badge">PHASE 7</span>
+          <span style="font-size:11.5px; font-weight:600; color:var(--sub);">ม.ค. – เม.ย. 2028</span>
+        </div>
+        <div style="font-size:15px; font-weight:800;">7. ขอวีซ่า & บินไปเรียนที่เกียวโต</div>
+        <div class="phase-details">
+          • รับเอกสาร COE และยื่นขอวีซ่านักเรียนญี่ปุ่น<br>
+          • จองหอพักและรับตั๋วเครื่องบินจาก ADB<br>
+          • เดินทางถึงเกียวโต เปิดเทอม April 2028 Intake
+          <div class="milestone-pill">🎯 เปิดเทอมปริญญาโท ม.เกียวโต (เม.ย. 2028)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 1: FULL MONTH CALENDAR               -->
+  <!-- ========================================== -->
+  <div class="cal-modal-backdrop" id="calModalBackdrop" onclick="closeCalendarModal(event)">
+    <div class="cal-modal-card" onclick="event.stopPropagation()">
+      <div class="cal-modal-header">
+        <div style="font-size:17px; font-weight:800;" id="calMonthTitle">ตุลาคม 2026</div>
+        <div class="cal-month-nav">
+          <button class="btn-month-Switch" onclick="changeCalMonth(-1)">‹</button>
+          <button class="btn-month-Switch" onclick="changeCalMonth(1)">›</button>
+          <button class="btn-month-Switch" onclick="closeCalendarModal()">✕</button>
+        </div>
+      </div>
+
+      <div class="cal-weekdays">
+        <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
+      </div>
+      <div class="cal-grid" id="calGridContainer"></div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 2: SELECTIVE RESET                   -->
+  <!-- ========================================== -->
+  <div class="cal-modal-backdrop" id="resetModalBackdrop" onclick="closeResetModal(event)">
+    <div class="cal-modal-card" onclick="event.stopPropagation()">
+      <div class="cal-modal-header">
+        <div style="font-size:17px; font-weight:800;">รีเซ็ตตารางงาน</div>
+        <button class="btn-month-Switch" onclick="closeResetModal()">✕</button>
+      </div>
+
+      <label class="modal-option-box selected" id="resetOptBoxToday" onclick="selectResetMode('today')">
+        <input type="radio" name="resetScopeMode" value="today" checked onchange="selectResetMode('today')" />
+        <div style="flex:1;">
+          <div style="font-size:13.5px; font-weight:800;">เฉพาะวันนี้</div>
+          <div style="font-size:11.5px; color:var(--sub);" id="resetTodayDescLbl">คืนค่าเริ่มต้นเฉพาะวันนี้ ไม่กระทบวันอื่น</div>
+        </div>
+      </label>
+
+      <label class="modal-option-box" id="resetOptBoxCustom" onclick="selectResetMode('custom')">
+        <input type="radio" name="resetScopeMode" value="custom" onchange="selectResetMode('custom')" />
+        <div style="flex:1;">
+          <div style="font-size:13.5px; font-weight:800; margin-bottom:6px;">เลือกวันที่ต้องการ</div>
+          <div onclick="event.stopPropagation()">
+            <input type="date" id="resetCustomDatePicker" class="time-input-mini" style="width:100%; background:#FFFFFF;" min="2026-10-01" max="2026-12-31" onchange="selectResetMode('custom')" />
+          </div>
+          <div style="margin-top:6px; font-size:11px; color:var(--sub); display:flex; align-items:center; gap:5px;" onclick="event.stopPropagation()">
+            <input type="checkbox" id="chkProtectPastReset" checked />
+            <span>ป้องกันการรีเซ็ตวันที่ผ่านมาแล้ว</span>
+          </div>
+        </div>
+      </label>
+
+      <label class="modal-option-box" id="resetOptBoxFuture" onclick="selectResetMode('future')">
+        <input type="radio" name="resetScopeMode" value="future" onchange="selectResetMode('future')" />
+        <div style="flex:1;">
+          <div style="font-size:13.5px; font-weight:800;">วันนี้ไปจนถึงอนาคต</div>
+          <div style="font-size:11.5px; color:var(--sub);">เก็บประวัติวันที่ผ่านมาแล้วทั้งหมดไว้</div>
+        </div>
+      </label>
+
+      <button type="button" class="btn-primary-pill" onclick="resetDefaultData()">ยืนยันการรีเซ็ต</button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 3: GEMINI API KEY SETTINGS           -->
+  <!-- ========================================== -->
+  <div class="cal-modal-backdrop" id="apiKeyModalBackdrop" onclick="closeApiKeyModal(event)">
+    <div class="cal-modal-card" onclick="event.stopPropagation()">
+      <div class="cal-modal-header">
+        <div style="font-size:17px; font-weight:800;">ตั้งค่า Gemini API</div>
+        <button class="btn-month-Switch" onclick="closeApiKeyModal()">✕</button>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label class="field-label">API Key</label>
+        <input type="password" id="geminiApiKeyInput" class="input-task-text" placeholder="AIzaSy..." />
+        <div style="font-size:11px; color:var(--sub); margin-top:5px;">
+          รับคีย์ฟรีที่ <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--primary); font-weight:700;">Google AI Studio</a>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label class="field-label">โมเดล</label>
+        <select id="geminiModelSelect" class="input-task-text" style="font-weight:700;">
+          <option value="gemini-3.8-flash" selected>gemini-3.8-flash (แนะนำ)</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (ประหยัดโควตา)</option>
+          <option value="gemini-3.6-flash">gemini-3.6-flash (เสถียร)</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash (บัญชีเก่า)</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button type="button" class="btn-month-Switch" style="padding:12px 16px; color:var(--red);" onclick="clearGeminiApiKey()">ลบคีย์</button>
+        <button type="button" class="btn-primary-pill" style="flex:1; margin-top:0;" onclick="saveGeminiApiKey()">บันทึกคีย์</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL 4: PLAN UPDATER (BOTTOM SHEET STYLE) -->
+  <!-- ========================================== -->
+  <div class="cal-modal-backdrop" id="manualAddModalBackdrop" onclick="closeManualAddModal(event)">
+    <div class="cal-modal-card" onclick="event.stopPropagation()">
+      <div class="cal-modal-header">
+        <div><div style="font-size:17px; font-weight:800;">เพิ่มงานเอง</div><div style="font-size:11.5px; color:var(--sub);">เลือกประเภทงาน แล้วกรอกรายละเอียด</div></div>
+        <button class="btn-month-Switch" onclick="closeManualAddModal()">✕</button>
+      </div>
+      <div class="sub-tab-bar" style="width:100%; margin-bottom:14px;">
+        <button type="button" class="sub-tab-btn active" style="flex:1;" id="manualTargetMain" onclick="setManualTarget('main')">งานหลัก</button>
+        <button type="button" class="sub-tab-btn" style="flex:1;" id="manualTargetExtra" onclick="setManualTarget('extra')">งานเสริม</button>
+      </div>
+        <div class="extra-task-builder">
+          <div class="input-row-with-kw">
+            <input type="text" id="extraTaskInput" class="input-task-text" style="background:#FFFFFF;" placeholder="ชื่องาน..." />
+            <button type="button" class="btn-toggle-kw" id="btnToggleKw" onclick="toggleKeywordDrawer()">
+              <span>ตัวเลือกด่วน</span>
+              <span id="kwArrowIcon">▼</span>
+            </button>
+          </div>
+
+          <!-- Hidden Keyword Drawer -->
+          <div class="keywords-drawer" id="keywordsDrawer">
+            <div class="keywords-scroll-row" id="keywordChipsRow"></div>
+          </div>
+
+          <div class="time-control-grid">
+            <div class="time-picker-group">
+              <span>เริ่ม</span>
+              <input type="time" id="extraStartTime" class="time-input-mini" style="background:#FFFFFF;" value="17:00">
+            </div>
+            <div class="time-picker-group">
+              <span>เวลา</span>
+              <select id="extraHourSelect" class="unit-select-mini" style="background:#FFFFFF;">
+                <option value="0">0 ชม.</option>
+                <option value="1" selected>1 ชม.</option>
+                <option value="2">2 ชม.</option>
+                <option value="3">3 ชม.</option>
+                <option value="4">4 ชม.</option>
+              </select>
+              <select id="extraMinSelect" class="unit-select-mini" style="background:#FFFFFF;">
+                <option value="0" selected>0 น.</option>
+                <option value="15">15 น.</option>
+                <option value="30">30 น.</option>
+                <option value="40">40 น.</option>
+                <option value="45">45 น.</option>
+                <option value="50">50 น.</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn-primary-pill" onclick="addExtraTask()">เพิ่มงาน</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="cal-modal-backdrop" id="planImportModalBackdrop" onclick="closePlanImportModal(event)">
+    <div class="cal-modal-card" onclick="event.stopPropagation()">
+      <div class="cal-modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="bento-icon-circle" style="background:var(--blue-soft); color:var(--blue); width:42px; height:42px;">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          </div>
+          <div>
+            <div style="font-size:17px; font-weight:800;">นำเข้าแผน</div>
+            <div style="font-size:11.5px; color:var(--sub);">จัดตารางเวลาอัตโนมัติ</div>
+          </div>
+        </div>
+        <button class="btn-month-Switch" onclick="closePlanImportModal()">✕</button>
+      </div>
+
+      <label class="field-label">นำเข้าเป็น</label>
+      <div class="sub-tab-bar" style="width:100%; margin-bottom:14px;">
+        <button type="button" class="sub-tab-btn active" style="flex:1;" id="importTargetMainBtn" onclick="setImportTarget('main')">งานหลัก</button>
+        <button type="button" class="sub-tab-btn" style="flex:1;" id="importTargetExtraBtn" onclick="setImportTarget('extra')">งานเสริม</button>
+      </div>
+      <div class="sub-tab-bar" style="width:100%; margin-bottom:14px;">
+        <button type="button" class="sub-tab-btn active" style="flex:1;" id="importTabManualBtn" onclick="switchImportTab('manual')">พิมพ์เพิ่มงาน</button>
+        <button type="button" class="sub-tab-btn" style="flex:1;" id="importTabFileBtn" onclick="switchImportTab('file')">ไฟล์ CSV / Excel</button>
+      </div>
+
+      <!-- Manual Input (Matches Reference 3rd Screen) -->
+      <div id="importPanelManual">
+        <div style="margin-bottom:10px;">
+          <label class="field-label">Title (รายละเอียดภารกิจ)</label>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="manualPlanTaskInput" class="input-task-text" placeholder="เช่น ฝึกทำโจทย์ Reading 3 บทความ..." onkeydown="if(event.key==='Enter') addManualStagingRow()" />
+            <button type="button" class="btn-mini-act rollover" style="padding:0 14px; flex-shrink:0;" onclick="addManualStagingRow()">+ คิว</button>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1.2fr 1fr 0.8fr; gap:8px; margin-bottom:12px;">
+          <div>
+            <label class="field-label">Date</label>
+            <input type="date" id="manualPlanDateInput" class="time-input-mini" style="width:100%;" />
+          </div>
+          <div>
+            <label class="field-label">Category</label>
+            <select id="manualPlanCatSelect" class="unit-select-mini" style="width:100%;">
+              <option value="IELTS">IELTS</option>
+              <option value="Research">Research</option>
+              <option value="ADB">ADB</option>
+              <option value="Deliverable">Deliverable</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Hours</label>
+            <input type="number" id="manualPlanHoursInput" class="time-input-mini" style="width:100%;" value="2" min="0.25" max="12" step="0.25" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label class="field-label">Description / Bulk Paste (วางหลายบรรทัด: วันที่ | งาน | ชม.)</label>
+          <textarea id="bulkPlanTextarea" class="input-task-text" rows="2" style="font-size:11.5px;" placeholder="2026-10-16 | ตะลุยโจทย์ Reading | 2.5"></textarea>
+          <button type="button" class="btn-mini-act" style="width:100%; justify-content:center; margin-top:6px; background:var(--input-bg);" onclick="parseBulkTextareaToStaging()">
+            ดึงข้อความด้านบนเข้าคิว
+          </button>
+        </div>
+      </div>
+
+      <!-- File Upload -->
+      <div id="importPanelFile" style="display:none;">
+        <div class="file-drop-zone" onclick="document.getElementById('planFileUploadInput').click()">
+          <div style="font-size:13.5px; font-weight:800; color:var(--primary);">แตะเพื่อเลือกไฟล์ .CSV หรือ .XLSX</div>
+          <div style="font-size:11px; color:var(--sub); margin-top:3px;">รองรับคอลัมน์ Date, Task, Hours</div>
+          <input type="file" id="planFileUploadInput" accept=".csv,.xlsx,.xls" style="display:none;" onchange="handlePlanFileSelected(event)" />
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+          <button type="button" class="btn-mini-act" style="background:var(--input-bg);" onclick="downloadSamplePlanCSV()">โหลดไฟล์ตัวอย่าง .CSV</button>
+        </div>
+      </div>
+
+      <!-- Mode Selection (main tasks only) -->
+      <div id="importModeWrap" style="display:flex; gap:8px; margin-bottom:12px;">
+        <label class="modal-option-box selected" id="importModeBoxReplace" style="flex:1; margin-bottom:0; padding:10px;" onclick="selectImportConflictMode('replace')">
+          <input type="radio" name="importConflictMode" value="replace" checked onchange="selectImportConflictMode('replace')" />
+          <div style="font-size:11.5px;">
+            <div style="font-weight:800;">แทนที่งานเดิม</div>
+            <label style="font-size:10.5px; color:var(--sub); display:flex; align-items:center; gap:4px; margin-top:2px;" onclick="event.stopPropagation()">
+              <input type="checkbox" id="chkKeepDoneOnReplace" onchange="renderStagingPreview()" /> เก็บงานที่เสร็จแล้ว
+            </label>
+          </div>
+        </label>
+        <label class="modal-option-box" id="importModeBoxKeep" style="flex:1; margin-bottom:0; padding:10px;" onclick="selectImportConflictMode('keep')">
+          <input type="radio" name="importConflictMode" value="keep" onchange="selectImportConflictMode('keep')" />
+          <div style="font-size:11.5px;">
+            <div style="font-weight:800;">แทรกเวลาว่าง</div>
+            <div style="font-size:10.5px; color:var(--sub); margin-top:2px;">เก็บงานเดิมไว้</div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Preview Queue -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="field-label" style="margin-bottom:0;">พรีวิวเวลาอัตโนมัติ (<span id="stagingCountLbl">0</span> งาน)</span>
+          <button type="button" class="btn-mini-act" style="color:var(--red); font-size:10.5px; padding:3px 8px; box-shadow:none;" onclick="clearStagingTasks()">ล้างคิว</button>
+        </div>
+        <div class="import-staging-list" id="importStagingContainer"></div>
+      </div>
+
+      <button type="button" class="btn-primary-pill" onclick="commitStagingPlanToSchedule()">Create Task</button>
+    </div>
+  </div>
+
+  <!-- Gemini AI full-screen popup -->
+  <!-- Collapsible Gemini AI Consultant Drawer -->
+        <div class="gemini-chat-drawer" id="geminiChatDrawer">
+          <div class="gemini-drawer-header">
+            <div class="gemini-title-wrap">
+              <span>🤖 โค้ช Gemini AI (<span id="geminiContextDateLbl">วันนี้</span>)</span>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button type="button" class="btn-mini-act" onclick="openApiKeyModal()" id="btnChatApiKeyStatus">คีย์</button>
+              <button type="button" class="btn-mini-act" onclick="toggleGeminiChatDrawer(false)">✕</button>
+            </div>
+          </div>
+
+          <div class="gemini-quick-chips">
+            <button type="button" class="gemini-chip" onclick="sendQuickGeminiPrompt('ช่วยปรับแผนภารกิจหลักของวันนี้ให้เข้มข้นขึ้น (Intensive 7.5 - 8 ชม.) โดยเพิ่มพาร์ทฝึกทำโจทย์ IELTS และอ่านเปเปอร์ให้ลึกขึ้น')">🔥 เพิ่มความเข้มข้น</button>
+            <button type="button" class="gemini-chip" onclick="sendQuickGeminiPrompt('วันนี้ต้องการเน้นตะลุยโจทย์ IELTS แบบเข้มข้นทั้ง Listening, Reading และ Writing ช่วยจัดตารางภารกิจหลักใหม่ให้เหมาะสม')">📝 เน้น IELTS</button>
+            <button type="button" class="gemini-chip" onclick="sendQuickGeminiPrompt('วันนี้ต้องการเร่งเขียน Research Proposal สำหรับ Dept. of Urban Management ม.เกียวโต และเชื่อมโยงทุน ADB-JSP ช่วยปรับภารกิจหลักให้หน่อย')">🏛️ เร่ง Proposal</button>
+            <button type="button" class="gemini-chip" onclick="sendQuickGeminiPrompt('ช่วยซอยย่อยภารกิจหลักของวันนี้ให้เป็นบล็อกสั้นลง อ่านง่ายขึ้น และไม่ล้าเกินไป แต่ยังได้เนื้อหาครบถ้วน')">⚡ ซอยงานย่อย</button>
+          </div>
+
+          <div class="gemini-messages-box" id="geminiChatMessages">
+            <div class="chat-msg ai">
+              พิมพ์บอกให้ปรับตารางหรือเพิ่มความเข้มข้นของวันนี้ได้เลยครับ
+            </div>
+          </div>
+
+          <div class="gemini-input-row">
+            <input type="text" id="geminiPromptInput" class="gemini-input" placeholder="ถามอะไรก็ได้ หรือให้ช่วยเสนอแผน..." onkeydown="if(event.key==='Enter') sendGeminiMessage()" />
+            <button type="button" class="btn-gemini-send" id="btnGeminiSend" onclick="sendGeminiMessage()">ส่ง</button>
+          </div>
+        </div>
+
+  <script>
+    function getSystemTodayKey() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const iso = `${y}${m}${d}`;
+      if (iso >= "20261001" && iso <= "20261231") {
+        return `d_${iso}`;
+      }
+      return "d_20261015";
+    }
+
+    const TODAY_KEY = getSystemTodayKey();
+    let currentDayKey = TODAY_KEY;
+    let currentSubTab = 'main';
+    let openDrawerTaskId = null;
+    let calModalMonth = 10;
+    let isKeywordDrawerOpen = false;
+    let isGeminiDrawerOpen = false;
+    let selectedResetScope = 'today';
+    let selectedImportMode = 'replace';
+    let stagingImportTasks = [];
+    let geminiProposalsMap = {};
+
+    const thaiShortDays = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
+    const thaiFullDays = ["วันอาทิตย์", "วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัส", "วันศุกร์", "วันเสาร์"];
+    const thaiShortMonths = ["", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+    const sprintTemplates = {
+      "20261014": {
+        head: "Day 1: ปูพื้นฐานเข้มข้น 6 ชม.",
+        body: "ทำ Cambridge 16 Test 1 (L&R) บันทึก Error Log และสำรวจ 3 แล็บวิจัย Urban Management",
+        tasks: [
+          { id: "t14_1", text: "[IELTS] ทำ Diagnostic Test 1 (Cambridge 16 Test 1 L&R)", cat: "IELTS", time: "08:00", durH: 2, durM: 0, done: false },
+          { id: "t14_2", text: "[IELTS] ตรวจเฉลย บันทึก Error Log และจดคำศัพท์ใหม่", cat: "IELTS", time: "10:15", durH: 1, durM: 30, done: false },
+          { id: "t14_3", text: "[Proposal] สำรวจ 3 แล็บวิจัย Dept. of Urban Management ม.เกียวโต", cat: "Research", time: "13:30", durH: 1, durM: 30, done: false },
+          { id: "t14_4", text: "[Proposal] คัดเลือกเปเปอร์ของอาจารย์เป้าหมาย 3 ฉบับ", cat: "Research", time: "15:15", durH: 1, durM: 0, done: false }
+        ],
+        extraTasks: [
+          { id: "ext_14_1", text: "วิ่งออกกำลังกายเช้า", cat: "สุขภาพ", time: "06:30", durH: 0, durM: 40, done: false }
+        ]
+      },
+      "20261015": {
+        head: "Day 2: IELTS Listening & เปเปอร์อาจารย์",
+        body: "เจาะลึกเทคนิคการฟัง Section 1-2 พร้อมอ่าน Abstract เปเปอร์อาจารย์ 3 ฉบับ",
+        tasks: [
+          { id: "t15_1", text: "[IELTS] เจาะลึก Listening Section 1-2 (ตัวเลข/การสะกด/แผนที่)", cat: "IELTS", time: "08:00", durH: 2, durM: 0, done: false },
+          { id: "t15_2", text: "[IELTS] ทบทวนคำศัพท์ Academic Word List 30 คำ", cat: "IELTS", time: "10:15", durH: 1, durM: 30, done: false },
+          { id: "t15_3", text: "[Proposal] อ่านและสรุป Abstract เปเปอร์อาจารย์ ม.เกียวโต 3 ฉบับ", cat: "Research", time: "13:30", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261016": {
+        head: "Day 3: Reading T/F/NG & กรอบทุน ADB",
+        body: "ตะลุยโจทย์ T/F/NG 4 บทความ และศึกษาเสาหลัก ADB Strategy 2030",
+        tasks: [
+          { id: "t16_1", text: "[IELTS] ฝึกทำโจทย์ Reading T/F/NG 4 บทความ จับเวลา 18 นาที/ชุด", cat: "IELTS", time: "08:30", durH: 3, durM: 30, done: false },
+          { id: "t16_2", text: "[Proposal] ศึกษาเสาหลัก ADB Strategy 2030 ด้าน Sustainable Transport", cat: "ADB", time: "13:30", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261017": {
+        head: "Day 4: Writing Task 1 & ร่างปัญหาเมือง",
+        body: "ปูพื้นฐานกราฟเส้นและแท่ง และเริ่มร่าง Problem Statement หน้าแรก",
+        tasks: [
+          { id: "t17_1", text: "[IELTS] ปูพื้นฐาน Writing Task 1: กราฟเส้นและแท่ง (Overview)", cat: "IELTS", time: "09:00", durH: 3, durM: 30, done: false },
+          { id: "t17_2", text: "[Proposal] ร่าง Problem Statement หน้าที่ 1 ปัญหาการพัฒนาเมือง", cat: "Research", time: "14:00", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261018": {
+        head: "Day 5: Speaking Part 1 & Literature Matrix",
+        body: "อัดเสียงซ้อมพูดและสร้างตารางเปรียบเทียบวรรณกรรม 5 ฉบับ",
+        tasks: [
+          { id: "t18_1", text: "[IELTS] ฝึกพูด Speaking Part 1 + ท่องศัพท์ Urban Topical 50 คำ", cat: "IELTS", time: "09:00", durH: 3, durM: 30, done: false },
+          { id: "t18_2", text: "[Proposal] สร้าง Literature Matrix ตารางเปรียบเทียบงานวิจัย 5 ฉบับ", cat: "Research", time: "14:00", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261019": {
+        head: "Day 6: Weekly Mock Sprint & สรุปสัปดาห์ที่ 1",
+        body: "ทำข้อสอบจำลองรวม และสรุปโครงร่างวิจัย 1 หน้า",
+        tasks: [
+          { id: "t19_1", text: "[IELTS] Weekly Mock Sprint ทำรวม L+R จับเวลาเข้มข้น", cat: "IELTS", time: "08:30", durH: 3, durM: 30, done: false },
+          { id: "t19_2", text: "[Proposal] รวบรวมประเด็นสัปดาห์ที่ 1 และสรุปหัวข้อวิจัย 1 หน้า", cat: "Deliverable", time: "13:30", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261020": {
+        head: "Day 7: Listening Section 3 & Research Gap",
+        body: "ฝึกฟังบทสนทนาวิชาการ Section 3 และสกัด Research Gap จากเปเปอร์",
+        tasks: [
+          { id: "t20_1", text: "[IELTS] ฝึกโจทย์ Listening Section 3 (Multiple Choice & Matching)", cat: "IELTS", time: "08:30", durH: 3, durM: 30, done: false },
+          { id: "t20_2", text: "[Proposal] วิเคราะห์ Research Gap ของงานวิจัยในกรุงเทพฯ/อาเซียน", cat: "Research", time: "13:30", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261021": {
+        head: "Day 8: Reading Matching & วัตถุประสงค์วิจัย",
+        body: "จับใจความสำคัญระดับย่อหน้า และตั้ง Research Questions 3 ข้อ",
+        tasks: [
+          { id: "t21_1", text: "[IELTS] ตะลุยโจทย์ Reading: Matching Headings 5 บทความ", cat: "IELTS", time: "08:30", durH: 3, durM: 30, done: false },
+          { id: "t21_2", text: "[Proposal] ร่าง Research Objectives & Research Questions 3 ข้อ", cat: "Research", time: "13:30", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261022": {
+        head: "Day 9: Writing Task 2 & Methodology",
+        body: "ฝึกวางโครงสร้างเรียงความ 250 คำ และเลือกวิธีวิจัยเชิงปริมาณ/คุณภาพ",
+        tasks: [
+          { id: "t22_1", text: "[IELTS] ฝึกเขียน Writing Task 2 (Opinion & Discussion Essay)", cat: "IELTS", time: "08:30", durH: 3, durM: 30, done: false },
+          { id: "t22_2", text: "[Proposal] วางกรอบ Research Methodology และพื้นที่ศึกษา (Case Study)", cat: "Research", time: "13:30", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261023": {
+        head: "Day 10: Speaking Part 2 & ข้อมูลวิจัย",
+        body: "ซ้อมพูด 2 นาทีต่อเนื่อง และสำรวจแหล่งข้อมูลเปิดด้านผังเมือง/ขนส่ง",
+        tasks: [
+          { id: "t23_1", text: "[IELTS] ซ้อมพูด Speaking Part 2 (Cue Card 10 หัวข้อ) จับเวลา 2 นาที", cat: "IELTS", time: "08:30", durH: 3, durM: 30, done: false },
+          { id: "t23_2", text: "[Proposal] สำรวจชุดข้อมูล GIS / Urban Data ที่ใช้ในงานวิจัย", cat: "Research", time: "13:30", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261024": {
+        head: "Day 11: Cambridge 16 Test 2 Full L&R",
+        body: "จำลองสอบ Listening + Reading ชุดที่ 2 และวิเคราะห์ข้อผิดพลาด",
+        tasks: [
+          { id: "t24_1", text: "[IELTS] ทำข้อสอบ Cambridge 16 Test 2 (L&R) จับเวลาจริง", cat: "IELTS", time: "09:00", durH: 3, durM: 30, done: false },
+          { id: "t24_2", text: "[Proposal] เชื่อมโยงผลลัพธ์งานวิจัยเข้ากับเกณฑ์ทุน ADB-JSP", cat: "ADB", time: "14:00", durH: 2, durM: 30, done: false }
+        ]
+      },
+      "20261025": {
+        head: "Day 12: Writing Process/Map & วรรณกรรม",
+        body: "ฝึกเขียนอธิบายแผนที่การเปลี่ยนแปลงเมือง และเรียบเรียง Literature Review",
+        tasks: [
+          { id: "t25_1", text: "[IELTS] ฝึกเขียน Writing Task 1: Map & Process Diagram", cat: "IELTS", time: "09:00", durH: 3, durM: 30, done: false },
+          { id: "t25_2", text: "[Proposal] เขียนสรุป Literature Review 2 หน้ากระดาษ", cat: "Research", time: "14:00", durH: 2, durM: 30, done: false }
+        ]
+      }
+    };
+
+    function createDateEntry(isoStr) {
+      const y = parseInt(isoStr.slice(0, 4));
+      const m = parseInt(isoStr.slice(4, 6));
+      const d = parseInt(isoStr.slice(6, 8));
+      const dateObj = new Date(y, m - 1, d);
+      const dow = dateObj.getDay();
+
+      const shortDay = thaiShortDays[dow];
+      const fullDay = thaiFullDays[dow];
+      const shortDate = `${d} ${thaiShortMonths[m]}`;
+      const dateName = `${shortDate} (${fullDay})`;
+
+      if (sprintTemplates[isoStr]) {
+        const tpl = sprintTemplates[isoStr];
+        return {
+          shortDay,
+          shortDate,
+          dateName,
+          dateStr: isoStr,
+          head: tpl.head,
+          body: tpl.body,
+          tasks: JSON.parse(JSON.stringify(tpl.tasks)),
+          extraTasks: tpl.extraTasks ? JSON.parse(JSON.stringify(tpl.extraTasks)) : []
+        };
+      }
+
+      const isNov = m === 11;
+      const isWeekend = (dow === 0 || dow === 6);
+      const studyHrs = isNov ? (isWeekend ? 3 : 1) : 3;
+
+      return {
+        shortDay,
+        shortDate,
+        dateName,
+        dateStr: isoStr,
+        head: isNov ? `Phase 2: ฝึกโจทย์ & ร่าง Proposal` : `Foundation Sprint: ฝึกโจทย์ & โครงร่าง`,
+        body: isNov ? "ซ้อมเขียน Writing และขยายผลโครงร่างงานวิจัย" : "ตะลุยโจทย์ IELTS Cambridge และสรุป Proposal Brief",
+        tasks: [
+          {
+            id: `t_${isoStr}_1`,
+            text: `[IELTS] ฝึกทำโจทย์ Listening & Reading + ทบทวน Error Log`,
+            cat: "IELTS",
+            time: isNov && !isWeekend ? "19:00" : "08:30",
+            durH: studyHrs,
+            durM: 30,
+            done: false
+          },
+          {
+            id: `t_${isoStr}_2`,
+            text: `[Proposal] พัฒนาโครงร่าง Research Proposal & อ่านเปเปอร์เพิ่ม`,
+            cat: "Research",
+            time: isNov && !isWeekend ? "20:45" : "13:30",
+            durH: isNov && !isWeekend ? 1 : 2,
+            durM: 30,
+            done: false
+          }
+        ],
+        extraTasks: []
+      };
+    }
+
+    function buildInitialSchedule() {
+      const sched = {};
+      for (let d = 14; d <= 31; d++) {
+        const iso = `202610${String(d).padStart(2, '0')}`;
+        sched[`d_${iso}`] = createDateEntry(iso);
+      }
+      return sched;
+    }
+
+    const popularKeywords = [
+      { label: "วิ่ง 40น.", text: "วิ่งออกกำลังกาย", durH: 0, durM: 40 },
+      { label: "ปีนผา/Bouldering", text: "ซ้อมปีนผาจำลอง (Bouldering)", durH: 1, durM: 30 },
+      { label: "ตีแบดมินตัน", text: "ตีแบดมินตัน", durH: 2, durM: 0 },
+      { label: "ปั่นจักรยาน", text: "ปั่นจักรยานออกกำลังกาย", durH: 1, durM: 0 },
+      { label: "เวทเทรนนิ่ง", text: "เวทเทรนนิ่ง / ฟิตเนส", durH: 1, durM: 0 },
+      { label: "ซักผ้า", text: "ซักผ้าและตากผ้า", durH: 0, durM: 45 },
+      { label: "จัดห้อง", text: "ทำความสะอาดห้องและจัดโต๊ะ", durH: 0, durM: 45 },
+      { label: "ทำอาหาร/ทานข้าว", text: "ทำอาหารและพักทานข้าว", durH: 1, durM: 0 },
+      { label: "ซื้อของเข้าบ้าน", text: "ซื้อของใช้ / ซูเปอร์มาร์เก็ต", durH: 1, durM: 0 },
+      { label: "พักสมอง/กาแฟ", text: "แวะดริปกาแฟ / พักผ่อนสมอง", durH: 0, durM: 45 },
+      { label: "งีบพัก 30น.", text: "งีบพักสายตาชาร์จพลัง", durH: 0, durM: 30 },
+      { label: "เคลียร์งานประจำ", text: "เคลียร์งานโปรเจกต์ / ตอบอีเมล", durH: 2, durM: 0 },
+      { label: "ยืดเหยียด/สมาธิ", text: "ยืดเหยียดกล้ามเนื้อและทำสมาธิ", durH: 0, durM: 30 },
+      { label: "โทรหาครอบครัว", text: "โทรพูดคุยกับครอบครัว", durH: 0, durM: 30 },
+      { label: "อาบน้ำ/เตรียมนอน", text: "อาบน้ำและเตรียมตัวเข้านอน", durH: 0, durM: 45 },
+      { label: "อ่านหนังสือทั่วไป", text: "อ่านหนังสือทั่วไปก่อนนอน", durH: 0, durM: 45 }
+    ];
+
+    let userSchedule = buildInitialSchedule();
+
+    function keyToIsoHyphen(dayKey) {
+      const iso = dayKey.replace('d_', '');
+      return `${iso.slice(0,4)}-${iso.slice(4,6)}-${iso.slice(6,8)}`;
+    }
+
+    function isoHyphenToKey(hyphenStr) {
+      const clean = (hyphenStr || '').replace(/[^0-9]/g, '');
+      if (clean.length === 8) return `d_${clean}`;
+      return TODAY_KEY;
+    }
+
+    function ensureDayExists(dayKey) {
+      if (!userSchedule[dayKey]) {
+        const iso = dayKey.replace('d_', '');
+        userSchedule[dayKey] = createDateEntry(iso);
+      }
+      return userSchedule[dayKey];
+    }
+
+    function getSortedDayKeys() {
+      return Object.keys(userSchedule).sort();
+    }
+
+    function loadStorage() {
+      try {
+        const saved = localStorage.getItem('kyoto_ai_plan_v12');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          userSchedule = { ...buildInitialSchedule(), ...parsed };
+        }
+      } catch (e) {}
+      ensureDayExists(TODAY_KEY);
+    }
+
+    function saveStorage() {
+      try {
+        localStorage.setItem('kyoto_ai_plan_v12', JSON.stringify(userSchedule));
+      } catch (e) {}
+    }
+
+    function openResetModal() {
+      const todayData = ensureDayExists(TODAY_KEY);
+      document.getElementById('resetTodayDescLbl').innerText =
+        `คืนค่าเริ่มต้นเฉพาะวันนี้ (${todayData.shortDate})`;
+      document.getElementById('resetCustomDatePicker').value = keyToIsoHyphen(currentDayKey);
+      selectResetMode('today');
+      document.getElementById('resetModalBackdrop').classList.add('open');
+    }
+
+    function closeResetModal(e) {
+      if (e && e.target !== document.getElementById('resetModalBackdrop')) return;
+      document.getElementById('resetModalBackdrop').classList.remove('open');
+    }
+
+    function selectResetMode(mode) {
+      selectedResetScope = mode;
+      document.getElementById('resetOptBoxToday').classList.toggle('selected', mode === 'today');
+      document.getElementById('resetOptBoxCustom').classList.toggle('selected', mode === 'custom');
+      document.getElementById('resetOptBoxFuture').classList.toggle('selected', mode === 'future');
+      const radios = document.querySelectorAll('input[name="resetScopeMode"]');
+      radios.forEach(r => { r.checked = (r.value === mode); });
+    }
+
+    function resetDefaultData() {
+      if (selectedResetScope === 'today') {
+        const iso = TODAY_KEY.replace('d_', '');
+        userSchedule[TODAY_KEY] = createDateEntry(iso);
+        currentDayKey = TODAY_KEY;
+        saveStorage();
+        renderAll();
+        closeResetModal();
+        showToast(`รีเซ็ตวันนี้ (${userSchedule[TODAY_KEY].shortDate}) เรียบร้อย`);
+      } else if (selectedResetScope === 'custom') {
+        const pickedVal = document.getElementById('resetCustomDatePicker').value;
+        if (!pickedVal) {
+          showToast('กรุณาเลือกวันที่');
+          return;
+        }
+        const targetKey = isoHyphenToKey(pickedVal);
+        const protectPast = document.getElementById('chkProtectPastReset').checked;
+        if (protectPast && targetKey < TODAY_KEY) {
+          showToast('ระบบล็อกการรีเซ็ตวันที่ผ่านมาแล้วไว้');
+          return;
+        }
+        const iso = targetKey.replace('d_', '');
+        userSchedule[targetKey] = createDateEntry(iso);
+        currentDayKey = targetKey;
+        saveStorage();
+        renderAll();
+        closeResetModal();
+        showToast(`รีเซ็ตวันที่ ${userSchedule[targetKey].shortDate} เรียบร้อย`);
+      } else if (selectedResetScope === 'future') {
+        const allKeys = Object.keys(userSchedule);
+        let resetCount = 0;
+        allKeys.forEach(k => {
+          if (k >= TODAY_KEY) {
+            const iso = k.replace('d_', '');
+            userSchedule[k] = createDateEntry(iso);
+            resetCount++;
+          }
+        });
+        ensureDayExists(TODAY_KEY);
+        currentDayKey = TODAY_KEY;
+        saveStorage();
+        renderAll();
+        closeResetModal();
+        showToast(`รีเซ็ต ${resetCount} วันเรียบร้อย`);
+      }
+    }
+
+    function toggleKeywordDrawer(forceState) {
+      isKeywordDrawerOpen = (typeof forceState === 'boolean') ? forceState : !isKeywordDrawerOpen;
+      const drawer = document.getElementById('keywordsDrawer');
+      const btn = document.getElementById('btnToggleKw');
+      const arrow = document.getElementById('kwArrowIcon');
+
+      if (isKeywordDrawerOpen) {
+        drawer.classList.add('open');
+        btn.classList.add('active');
+        arrow.innerText = '▲';
+      } else {
+        drawer.classList.remove('open');
+        btn.classList.remove('active');
+        arrow.innerText = '▼';
+      }
+    }
+
+    function timeToMinutes(t) {
+      const [h, m] = (t || '08:00').split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function minutesToTime(mins) {
+      const clamped = Math.max(0, Math.min(23 * 60 + 50, mins));
+      const h = Math.floor(clamped / 60);
+      const m = clamped % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function calculateEndTime(start, durH, durM) {
+      const total = timeToMinutes(start) + (parseInt(durH) || 0) * 60 + (parseInt(durM) || 0);
+      return minutesToTime(total);
+    }
+
+    function formatDuration(durH, durM) {
+      durH = parseInt(durH) || 0;
+      durM = parseInt(durM) || 0;
+      if (durH === 0) return `${durM}น.`;
+      if (durM === 0) return `${durH}ชม.`;
+      return `${durH}ชม. ${durM}น.`;
+    }
+
+    function findTimeConflict(dayKey, taskId, startTimeStr, durH, durM) {
+      const dayData = ensureDayExists(dayKey);
+      const allTasks = [...(dayData.tasks || []), ...(dayData.extraTasks || [])];
+
+      const selfTask = allTasks.find(x => x.id === taskId);
+      if (selfTask && selfTask.done) {
+        return { conflict: false };
+      }
+
+      const startMins = timeToMinutes(startTimeStr);
+      const durationMins = Math.max(10, (parseInt(durH) || 0) * 60 + (parseInt(durM) || 0));
+      const endMins = startMins + durationMins;
+
+      for (const t of allTasks) {
+        if (t.id === taskId || t.done) continue;
+        const tStart = timeToMinutes(t.time);
+        const tDur = Math.max(10, (parseInt(t.durH) || 0) * 60 + (parseInt(t.durM) || 0));
+        const tEnd = tStart + tDur;
+        if (Math.max(startMins, tStart) < Math.min(endMins, tEnd)) {
+          return { conflict: true, taskName: t.text.replace(/\[.*?\]/g, '').trim(), timeRange: `${t.time}-${minutesToTime(tEnd)}` };
+        }
+      }
+      return { conflict: false };
+    }
+
+    function getNextDayKey(dayKey) {
+      const iso = dayKey.replace('d_', '');
+      const y = parseInt(iso.slice(0, 4));
+      const m = parseInt(iso.slice(4, 6));
+      const d = parseInt(iso.slice(6, 8));
+      const nextDate = new Date(y, m - 1, d + 1);
+      const ny = nextDate.getFullYear();
+      const nm = String(nextDate.getMonth() + 1).padStart(2, '0');
+      const nd = String(nextDate.getDate()).padStart(2, '0');
+      const nextKey = `d_${ny}${nm}${nd}`;
+      ensureDayExists(nextKey);
+      return nextKey;
+    }
+
+    function findNextFreeSlot(dayKey, durH, durM) {
+      const durationMins = Math.max(15, (parseInt(durH) || 0) * 60 + (parseInt(durM) || 0));
+      for (let cand = 8 * 60; cand <= 22 * 60 - durationMins; cand += 15) {
+        if (cand < 13 * 60 && cand + durationMins > 12 * 60 + 15) {
+          cand = 13 * 60 - 15;
+          continue;
+        }
+        const timeStr = minutesToTime(cand);
+        const check = findTimeConflict(dayKey, '__new_rollover__', timeStr, durH, durM);
+        if (!check.conflict) return timeStr;
+      }
+      return "20:00";
+    }
+
+    function rolloverSingleTask(taskId, event) {
+      if (event) event.stopPropagation();
+      const nextDayKey = getNextDayKey(currentDayKey);
+      const curDay = ensureDayExists(currentDayKey);
+      const nextDay = ensureDayExists(nextDayKey);
+
+      const taskIdx = curDay.tasks.findIndex(t => t.id === taskId);
+      if (taskIdx === -1) return;
+
+      const task = curDay.tasks[taskIdx];
+      const bestTime = findNextFreeSlot(nextDayKey, task.durH, task.durM);
+
+      curDay.tasks.splice(taskIdx, 1);
+      nextDay.tasks.push({
+        ...task,
+        id: task.id + '_ro_' + Date.now().toString().slice(-3),
+        time: bestTime,
+        rolledFrom: curDay.shortDate,
+        calSynced: false
+      });
+      nextDay.tasks.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+
+      saveStorage();
+      renderAll();
+      showToast(`ย้ายไป ${nextDay.shortDate} (${bestTime} น.) แล้ว`);
+    }
+
+    function aiRolloverAllIncomplete() {
+      const nextDayKey = getNextDayKey(currentDayKey);
+      const curDay = ensureDayExists(currentDayKey);
+      const nextDay = ensureDayExists(nextDayKey);
+
+      const incomplete = curDay.tasks.filter(t => !t.done);
+      if (incomplete.length === 0) return;
+
+      let movedCount = 0;
+      incomplete.forEach(task => {
+        const bestTime = findNextFreeSlot(nextDayKey, task.durH, task.durM);
+        nextDay.tasks.push({
+          ...task,
+          id: task.id + '_ro_' + Math.random().toString(36).slice(2, 5),
+          time: bestTime,
+          rolledFrom: curDay.shortDate,
+          calSynced: false
+        });
+        movedCount++;
+      });
+
+      curDay.tasks = curDay.tasks.filter(t => t.done);
+      nextDay.tasks.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+
+      saveStorage();
+      currentDayKey = nextDayKey;
+      renderAll();
+      scrollToSelectedPill();
+      showToast(`ย้าย ${movedCount} งานไปวันที่ ${nextDay.shortDate} แล้ว`);
+    }
+
+    function switchView(viewName) {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-daily').style.display = 'none';
+      document.getElementById('view-dashboard').style.display = 'none';
+      document.getElementById('view-timeline').style.display = 'none';
+
+      if (viewName === 'daily') {
+        document.querySelectorAll('.nav-btn')[0].classList.add('active');
+        document.getElementById('view-daily').style.display = 'block';
+      } else if (viewName === 'dashboard') {
+        document.querySelectorAll('.nav-btn')[1].classList.add('active');
+        document.getElementById('view-dashboard').style.display = 'block';
+        renderDashboardChart();
+      } else {
+        document.querySelectorAll('.nav-btn')[2].classList.add('active');
+        document.getElementById('view-timeline').style.display = 'block';
+      }
+    }
+
+    function switchSubTab(tab) {
+      currentSubTab = tab;
+      document.getElementById('subTabMain').classList.toggle('active', tab === 'main');
+      document.getElementById('subTabExtra').classList.toggle('active', tab === 'extra');
+      document.getElementById('subViewMain').style.display = tab === 'main' ? 'block' : 'none';
+      document.getElementById('subViewExtra').style.display = tab === 'extra' ? 'block' : 'none';
+      const mainTools = document.getElementById('mainToolbarActions');
+      if (mainTools) mainTools.style.display = tab === 'main' ? 'flex' : 'none';
+    }
+
+    function selectDay(dayKey) {
+      ensureDayExists(dayKey);
+      currentDayKey = dayKey;
+      openDrawerTaskId = null;
+      renderAll();
+    }
+
+    function jumpToToday() {
+      selectDay(TODAY_KEY);
+      scrollToSelectedPill();
+      showToast('กลับมาที่วันนี้แล้ว');
+    }
+
+    function scrollToSelectedPill() {
+      setTimeout(() => {
+        const el = document.getElementById(`pill_${currentDayKey}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }, 60);
+    }
+
+    function renderDayStrip() {
+      const container = document.getElementById('dayStripContainer');
+      container.innerHTML = '';
+
+      const todayData = ensureDayExists(TODAY_KEY);
+      document.getElementById('todayBannerText').innerText = `วันนี้ (${todayData.shortDate})`;
+
+      const keys = getSortedDayKeys();
+      keys.forEach(k => {
+        const d = userSchedule[k];
+        const total = d.tasks.length;
+        const done = d.tasks.filter(t => t.done).length;
+        let dotClass = 'day-dot';
+        if (total > 0 && done === total) dotClass += ' done-all';
+        else if (total > 0 && done < total) dotClass += ' has-pending';
+
+        const isToday = (k === TODAY_KEY);
+        const isSelected = (k === currentDayKey);
+        const dayNumOnly = d.shortDate.split(' ')[0];
+
+        const pill = document.createElement('div');
+        pill.id = `pill_${k}`;
+        pill.className = 'day-pill' + (isToday ? ' is-today' : '') + (isSelected ? ' active' : '');
+        pill.onclick = () => selectDay(k);
+        pill.innerHTML = `
+          <div class="day-pill-sub">${d.shortDay.replace('.', '')}</div>
+          <div class="day-pill-main">${dayNumOnly}</div>
+          <div class="${dotClass}"></div>
+        `;
+        container.appendChild(pill);
+      });
+    }
+
+    function openCalendarModal() {
+      const iso = currentDayKey.replace('d_', '');
+      calModalMonth = parseInt(iso.slice(4, 6)) || 10;
+      renderCalendarModalGrid();
+      document.getElementById('calModalBackdrop').classList.add('open');
+    }
+
+    function closeCalendarModal(e) {
+      if (e && e.target !== document.getElementById('calModalBackdrop')) return;
+      document.getElementById('calModalBackdrop').classList.remove('open');
+    }
+
+    function changeCalMonth(delta) {
+      calModalMonth = Math.max(10, Math.min(12, calModalMonth + delta));
+      renderCalendarModalGrid();
+    }
+
+    function renderCalendarModalGrid() {
+      const monthNames = { 10: "ตุลาคม 2026", 11: "พฤศจิกายน 2026", 12: "ธันวาคม 2026" };
+      document.getElementById('calMonthTitle').innerText = monthNames[calModalMonth] || "ตุลาคม 2026";
+
+      const grid = document.getElementById('calGridContainer');
+      grid.innerHTML = '';
+
+      const year = 2026;
+      const firstDay = new Date(year, calModalMonth - 1, 1).getDay();
+      const daysInMonth = new Date(year, calModalMonth, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-cell empty';
+        grid.appendChild(empty);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const iso = `${year}${String(calModalMonth).padStart(2, '0')}${String(day).padStart(2, '0')}`;
+        const key = `d_${iso}`;
+        const existing = userSchedule[key];
+
+        let dotHtml = `<div class="cal-cell-dot" style="background:transparent;"></div>`;
+        if (existing && existing.tasks && existing.tasks.length > 0) {
+          const allDone = existing.tasks.every(t => t.done);
+          dotHtml = `<div class="cal-cell-dot" style="background:${allDone ? 'var(--green)' : 'var(--primary)'};"></div>`;
+        }
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell' + (key === TODAY_KEY ? ' is-today' : '') + (key === currentDayKey ? ' is-selected' : '');
+        cell.innerHTML = `
+          <span>${day}</span>
+          ${dotHtml}
+        `;
+        cell.onclick = () => {
+          ensureDayExists(key);
+          saveStorage();
+          selectDay(key);
+          document.getElementById('calModalBackdrop').classList.remove('open');
+          scrollToSelectedPill();
+        };
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderDailyOverview() {
+      const d = ensureDayExists(currentDayKey);
+      const tasks = d.tasks || [];
+      const total = tasks.length;
+      const done = tasks.filter(t => t.done).length;
+      const pending = total - done;
+      const pct = total === 0 ? 100 : Math.round((done / total) * 100);
+
+      const circumference = 163.36;
+      const offset = circumference - (pct / 100) * circumference;
+      const ringBar = document.getElementById('dailyRingBar');
+      ringBar.style.strokeDashoffset = offset;
+      ringBar.style.stroke = pct === 100 ? 'var(--green)' : '#58B9FF';
+      document.getElementById('dailyRingText').innerText = `${pct}%`;
+
+      document.getElementById('selectedDateLabel').innerText = d.dateName;
+      document.getElementById('aiFocusHead').innerText = d.head;
+      document.getElementById('aiFocusBody').innerText = d.body;
+
+      const totalNumEl = document.getElementById('bentoTaskTotalNum');
+      if (totalNumEl) totalNumEl.innerText = total;
+
+      const previewBox = document.getElementById('bentoPreviewList');
+      if (previewBox) {
+        const previewItems = tasks.slice(0, 2).map(t => {
+          const clean = (t.text || '').replace(/^\[.*?\]\s*/, '');
+          const shortTxt = clean.length > 22 ? clean.slice(0, 22) + '…' : clean;
+          return `<div>${t.done ? '✅' : '📌'} ${shortTxt}</div>`;
+        }).join('');
+        previewBox.innerHTML = previewItems;
+      }
+
+      const geminiDateLbl = document.getElementById('geminiContextDateLbl');
+      if (geminiDateLbl) geminiDateLbl.innerText = d.shortDate;
+
+      const totalMins = tasks.reduce((acc, t) => acc + ((parseInt(t.durH) || 0) * 60 + (parseInt(t.durM) || 0)), 0);
+      const totalHrs = (totalMins / 60).toFixed(1);
+      const pillHrs = document.getElementById('pillTotalHours');
+      pillHrs.innerText = `⏳ รวม ${totalHrs} ชม.`;
+
+      document.getElementById('pillDoneRatio').innerText = `เสร็จ ${done} จาก ${total} งาน`;
+      document.getElementById('mainCountLbl').innerText = `${done}/${total}`;
+      document.getElementById('extraCountLbl').innerText = (d.extraTasks || []).length;
+
+      const banner = document.getElementById('aiRolloverBanner');
+      if (pending > 0) {
+        banner.style.display = 'flex';
+        document.getElementById('rolloverCountBadge').innerText = `งานค้าง ${pending} รายการ`;
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    function toggleTaskDone(taskId, isExtra) {
+      const d = ensureDayExists(currentDayKey);
+      const list = isExtra ? d.extraTasks : d.tasks;
+      const t = list.find(x => x.id === taskId);
+      if (t) {
+        t.done = !t.done;
+        saveStorage();
+        renderAll();
+      }
+    }
+
+    function toggleTaskDrawer(taskId, event) {
+      if (event) event.stopPropagation();
+      openDrawerTaskId = (openDrawerTaskId === taskId) ? null : taskId;
+      renderAll();
+    }
+
+    function updateTaskSchedule(taskId, field, value, isExtra, event) {
+      if (event) event.stopPropagation();
+      const d = ensureDayExists(currentDayKey);
+      const list = isExtra ? d.extraTasks : d.tasks;
+      const t = list.find(x => x.id === taskId);
+      if (!t) return;
+
+      if (field === 'time') t.time = value;
+      if (field === 'durH') t.durH = parseInt(value) || 0;
+      if (field === 'durM') t.durM = parseInt(value) || 0;
+      if (field === 'text' && value.trim()) t.text = value.trim();
+      if (field === 'cat') t.cat = value;
+      saveStorage();
+      renderAll();
+    }
+
+    function deleteTaskItem(taskId, isExtra, event) {
+      if (event) event.stopPropagation();
+      const d = ensureDayExists(currentDayKey);
+      if (isExtra) {
+        d.extraTasks = d.extraTasks.filter(x => x.id !== taskId);
+      } else {
+        d.tasks = d.tasks.filter(x => x.id !== taskId);
+      }
+      saveStorage();
+      renderAll();
+      showToast('ลบรายการแล้ว');
+    }
+
+    function renderTaskLists() {
+      const d = ensureDayExists(currentDayKey);
+      const mainContainer = document.getElementById('mainTaskListContainer');
+      mainContainer.innerHTML = '';
+
+      if (!d.tasks || d.tasks.length === 0) {
+        mainContainer.innerHTML = `<div style="text-align:center; padding:32px 12px; color:var(--sub); font-size:13px;">🎉 ไม่มีภารกิจค้างในวันนี้</div>`;
+      } else {
+        d.tasks.forEach((t, idx) => {
+          mainContainer.appendChild(buildTaskElement(t, false, idx));
+        });
+      }
+
+      const extraContainer = document.getElementById('extraTaskListContainer');
+      extraContainer.innerHTML = '';
+      if (!d.extraTasks || d.extraTasks.length === 0) {
+        extraContainer.innerHTML = `<div style="text-align:center; padding:24px; color:var(--sub); font-size:12.5px;">ยังไม่มีงานเสริมในวันนี้</div>`;
+      } else {
+        d.extraTasks.forEach((t, idx) => {
+          extraContainer.appendChild(buildTaskElement(t, true, idx));
+        });
+      }
+    }
+
+    function getPastelThemeAndIcon(cat, isExtra, idx) {
+      const c = (cat || '').toLowerCase();
+      if (isExtra) {
+        return {
+          theme: 'pastel-peach',
+          svg: '<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'
+        };
+      }
+      if (c.includes('research') || c.includes('proposal')) {
+        return {
+          theme: 'pastel-pink',
+          svg: '<svg class="ico" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>'
+        };
+      }
+      if (c.includes('adb') || c.includes('deliverable')) {
+        return {
+          theme: 'pastel-purple',
+          svg: '<svg class="ico" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>'
+        };
+      }
+      const fallbackThemes = ['pastel-blue', 'pastel-pink', 'pastel-peach'];
+      return {
+        theme: fallbackThemes[idx % fallbackThemes.length] || 'pastel-blue',
+        svg: '<svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
+      };
+    }
+
+    function buildTaskElement(t, isExtra, idx) {
+      const endTime = calculateEndTime(t.time, t.durH, t.durM);
+      const conflict = findTimeConflict(currentDayKey, t.id, t.time, t.durH, t.durM);
+      const isOpen = openDrawerTaskId === t.id;
+      const canRollover = !isExtra && !t.done;
+      const { theme, svg } = getPastelThemeAndIcon(t.cat, isExtra, idx || 0);
+
+      const el = document.createElement('div');
+      el.className = `task-item ${theme}` + (t.done ? ' done' : '') + (conflict.conflict ? ' has-conflict' : '') + (isOpen ? ' open-drawer' : '');
+
+      const safeTextAttr = (t.text || '').replace(/"/g, '&quot;');
+      const cleanDisplayTitle = (t.text || '').replace(/^\[.*?\]\s*/, '');
+
+      el.innerHTML = `
+        <div class="task-card-top" onclick="toggleTaskDone('${t.id}', ${isExtra})">
+          <div class="task-cat-icon">${svg}</div>
+          <div class="task-content">
+            <div class="task-cat-label">
+              <span>${t.cat}</span>
+              ${t.rolledFrom ? `<span class="pill-badge-mini">ทดจาก ${t.rolledFrom}</span>` : ''}
+              ${t.calSynced ? `<span class="pill-badge-mini">✓ Cal</span>` : ''}
+            </div>
+            <div class="task-title">${cleanDisplayTitle}</div>
+          </div>
+          <button type="button" class="btn-task-more" onclick="toggleTaskDrawer('${t.id}', event)" title="แก้ไขเวลาและตั้งค่า">
+            ${isOpen ? '✕' : '•••'}
+          </button>
+        </div>
+
+        <div class="task-card-bottom">
+          <div class="status-check-pill" onclick="toggleTaskDone('${t.id}', ${isExtra})">
+            <div class="circle-check">
+              ${t.done ? '<svg class="ico" style="width:12px;height:12px;stroke-width:3;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            </div>
+            <span>${t.done ? 'เสร็จแล้ว' : 'แตะเมื่อเสร็จ'}</span>
+          </div>
+
+          <div class="pill-time" onclick="toggleTaskDrawer('${t.id}', event)">
+            <svg class="ico" style="width:14px;height:14px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>${t.time} - ${endTime} (${formatDuration(t.durH, t.durM)})</span>
+          </div>
+        </div>
+
+        ${conflict.conflict ? `
+          <div class="conflict-alert">
+            <span>⚠️ เวลาชนกับ "${conflict.taskName}" (${conflict.timeRange})</span>
+          </div>
+        ` : ''}
+
+        <div class="task-drawer" onclick="event.stopPropagation()">
+          <div style="margin-bottom:8px;">
+            <input type="text" class="input-task-text" style="padding:8px 12px; font-size:12.5px; background:#FFFFFF;" value="${safeTextAttr}" onchange="updateTaskSchedule('${t.id}', 'text', this.value, ${isExtra}, event)" />
+          </div>
+          <div class="time-control-grid">
+            <div class="time-picker-group">
+              <span>เริ่ม</span>
+              <input type="time" class="time-input-mini" value="${t.time}" onchange="updateTaskSchedule('${t.id}', 'time', this.value, ${isExtra}, event)">
+            </div>
+            <div class="time-picker-group">
+              <span>ระยะเวลา</span>
+              <select class="unit-select-mini" onchange="updateTaskSchedule('${t.id}', 'durH', this.value, ${isExtra}, event)">
+                ${[0,1,2,3,4,5,6,7,8].map(h => `<option value="${h}" ${parseInt(t.durH) === h ? 'selected' : ''}>${h} ชม.</option>`).join('')}
+              </select>
+              <select class="unit-select-mini" onchange="updateTaskSchedule('${t.id}', 'durM', this.value, ${isExtra}, event)">
+                ${[0,15,30,40,45,50].map(m => `<option value="${m}" ${parseInt(t.durM) === m ? 'selected' : ''}>${m} น.</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div class="task-drawer-actions">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              ${canRollover ? `<button type="button" class="btn-mini-act rollover" onclick="rolloverSingleTask('${t.id}', event)">↪️ ทดไปพรุ่งนี้</button>` : ''}
+              <button type="button" class="btn-mini-act cal" onclick="syncGoogleCal('${t.id}', ${isExtra}, event)">📅 Google Cal</button>
+            </div>
+            <button type="button" class="btn-mini-act danger" onclick="deleteTaskItem('${t.id}', ${isExtra}, event)">ลบ</button>
+          </div>
+        </div>
+      `;
+      return el;
+    }
+
+    function addExtraTask() {
+      const inp = document.getElementById('extraTaskInput');
+      const text = inp.value.trim();
+      if (!text) {
+        showToast('กรุณาใส่ชื่อกิจกรรม');
+        return;
+      }
+      const startTime = document.getElementById('extraStartTime').value || '17:00';
+      const durH = parseInt(document.getElementById('extraHourSelect').value) || 0;
+      const durM = parseInt(document.getElementById('extraMinSelect').value) || 0;
+
+      const conflict = findTimeConflict(currentDayKey, '__new__', startTime, durH, durM);
+      if (conflict.conflict) {
+        showToast(`เวลาชนกับ "${conflict.taskName}"`);
+        return;
+      }
+
+      const d = ensureDayExists(currentDayKey);
+      const isMain = manualTarget === 'main';
+      const task = {
+        id: (isMain ? 'man_' : 'ext_') + Date.now(),
+        text,
+        cat: isMain ? detectTaskCategory(text) : 'Sport & Life',
+        time: startTime,
+        durH,
+        durM,
+        done: false,
+        calSynced: false
+      };
+      if (isMain) {
+        d.tasks.push(task);
+        d.tasks.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+      } else {
+        d.extraTasks.push(task);
+      }
+
+      inp.value = '';
+      toggleKeywordDrawer(false);
+      saveStorage();
+      renderAll();
+      closeManualAddModal();
+      switchSubTab(manualTarget);
+      showToast(isMain ? 'เพิ่มงานหลักแล้ว' : 'เพิ่มงานเสริมแล้ว');
+    }
+
+    function renderKeywords() {
+      const row = document.getElementById('keywordChipsRow');
+      row.innerHTML = '';
+      popularKeywords.forEach(k => {
+        const chip = document.createElement('div');
+        chip.className = 'kw-chip';
+        chip.innerText = k.label;
+        chip.onclick = () => {
+          document.getElementById('extraTaskInput').value = k.text;
+          document.getElementById('extraHourSelect').value = k.durH;
+          document.getElementById('extraMinSelect').value = k.durM;
+          toggleKeywordDrawer(false);
+        };
+        row.appendChild(chip);
+      });
+    }
+
+    function syncGoogleCal(taskId, isExtra, event) {
+      if (event) event.stopPropagation();
+      const d = ensureDayExists(currentDayKey);
+      const list = isExtra ? d.extraTasks : d.tasks;
+      const t = list.find(x => x.id === taskId);
+      if (!t) return;
+
+      const conflict = findTimeConflict(currentDayKey, t.id, t.time, t.durH, t.durM);
+      if (conflict.conflict) {
+        showToast(`เวลาชนกับ "${conflict.taskName}"`);
+        return;
+      }
+
+      t.calSynced = true;
+      saveStorage();
+      renderAll();
+
+      const endTime = calculateEndTime(t.time, t.durH, t.durM);
+      const dtStart = `${d.dateStr}T${t.time.replace(':', '')}00`;
+      const dtEnd = `${d.dateStr}T${endTime.replace(':', '')}00`;
+      const title = `[${t.cat}] ${t.text.replace(/\[.*?\]/g, '').trim()}`;
+      const desc = `ภารกิจเตรียมสอบ Kyoto University (ADB-JSP)\nระยะเวลา: ${formatDuration(t.durH, t.durM)}`;
+
+      const gUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dtStart}/${dtEnd}&ctz=Asia/Bangkok&details=${encodeURIComponent(desc)}`;
+      window.open(gUrl, '_blank');
+    }
+
+    function renderDashboardChart() {
+      const container = document.getElementById('weeklyChartContainer');
+      container.innerHTML = '';
+
+      let totalTasksAll = 0;
+      let doneTasksAll = 0;
+      let overloadedDayName = null;
+
+      const keys = getSortedDayKeys().slice(0, 10);
+      keys.forEach(k => {
+        const d = userSchedule[k];
+        const tasks = d.tasks || [];
+        totalTasksAll += tasks.length;
+        const doneCount = tasks.filter(t => t.done).length;
+        doneTasksAll += doneCount;
+
+        const mins = tasks.reduce((acc, t) => acc + ((parseInt(t.durH) || 0) * 60 + (parseInt(t.durM) || 0)), 0);
+        const hrs = (mins / 60).toFixed(1);
+        const heightPct = Math.min(100, Math.round((mins / 540) * 100));
+
+        let barClass = 'chart-bar-fill';
+        if (tasks.length > 0 && doneCount === tasks.length) barClass += ' complete';
+        else if (mins > 420) {
+          barClass += ' overload';
+          overloadedDayName = d.shortDate;
+        }
+
+        const col = document.createElement('div');
+        col.className = 'chart-col';
+        col.innerHTML = `
+          <div class="chart-val">${hrs}</div>
+          <div class="chart-bar-wrap">
+            <div class="${barClass}" style="height: ${heightPct}%;"></div>
+          </div>
+          <div class="chart-lbl">${d.shortDate.split(' ')[0]}</div>
+        `;
+        container.appendChild(col);
+      });
+
+      const overallPct = totalTasksAll === 0 ? 0 : Math.round((doneTasksAll / totalTasksAll) * 100);
+      document.getElementById('weeklyCompletionPill').innerText = `สำเร็จ ${overallPct}%`;
+
+      const insightBox = document.getElementById('aiDashboardInsight');
+      if (overloadedDayName) {
+        insightBox.innerHTML = `⚠️ วันที่ <strong>${overloadedDayName}</strong> มีงานสะสมเกิน 7 ชม. แนะนำให้กระจายงานไปวันถัดไป`;
+      } else {
+        insightBox.innerHTML = `💡 ภาระงานรายวันสมดุลดี แนะนำให้ทำโจทย์ IELTS ในช่วงเช้า`;
+      }
+    }
+
+    function getGeminiApiKey() {
+      try {
+        return localStorage.getItem('kyoto_gemini_api_key') || '';
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function getGeminiModel() {
+      try {
+        const saved = localStorage.getItem('kyoto_gemini_model');
+        if (!saved || saved === 'gemini-2.5-flash' || saved === 'gemini-2.0-flash' || saved === 'gemini-2.5-pro') {
+          localStorage.setItem('kyoto_gemini_model', 'gemini-3.8-flash');
+          return 'gemini-3.8-flash';
+        }
+        return saved;
+      } catch (e) {
+        return 'gemini-3.8-flash';
+      }
+    }
+
+    function updateApiKeyVisualStatus() {
+      const hasKey = !!getGeminiApiKey();
+      const dot = document.getElementById('apiKeyStatusDot');
+      const chatBtn = document.getElementById('btnChatApiKeyStatus');
+      if (dot) dot.classList.toggle('connected', hasKey);
+      if (chatBtn) {
+        chatBtn.innerText = hasKey ? 'เชื่อมคีย์แล้ว' : 'ใส่คีย์';
+      }
+    }
+
+    function openApiKeyModal() {
+      document.getElementById('geminiApiKeyInput').value = getGeminiApiKey();
+      document.getElementById('geminiModelSelect').value = getGeminiModel();
+      document.getElementById('apiKeyModalBackdrop').classList.add('open');
+    }
+
+    function closeApiKeyModal(e) {
+      if (e && e.target !== document.getElementById('apiKeyModalBackdrop')) return;
+      document.getElementById('apiKeyModalBackdrop').classList.remove('open');
+    }
+
+    function saveGeminiApiKey() {
+      const keyVal = document.getElementById('geminiApiKeyInput').value.trim();
+      const modelVal = document.getElementById('geminiModelSelect').value;
+      try {
+        localStorage.setItem('kyoto_gemini_api_key', keyVal);
+        localStorage.setItem('kyoto_gemini_model', modelVal);
+      } catch (e) {}
+      updateApiKeyVisualStatus();
+      closeApiKeyModal();
+      showToast('บันทึก API Key แล้ว');
+    }
+
+    function clearGeminiApiKey() {
+      try {
+        localStorage.removeItem('kyoto_gemini_api_key');
+      } catch (e) {}
+      document.getElementById('geminiApiKeyInput').value = '';
+      updateApiKeyVisualStatus();
+      showToast('ลบ API Key แล้ว');
+    }
+
+    function toggleGeminiChatDrawer(forceState) {
+      isGeminiDrawerOpen = (typeof forceState === 'boolean') ? forceState : !isGeminiDrawerOpen;
+      document.getElementById('geminiChatDrawer').classList.toggle('open', isGeminiDrawerOpen);
+      document.body.style.overflow = isGeminiDrawerOpen ? 'hidden' : '';
+      if (isGeminiDrawerOpen) {
+        const box = document.getElementById('geminiChatMessages');
+        setTimeout(() => { box.scrollTop = box.scrollHeight; }, 50);
+      }
+    }
+
+    // + button speed dial (manual add / Gemini popup / import plan)
+    function toggleFab(force) {
+      const menu = document.getElementById('fabMenu');
+      const open = (typeof force === 'boolean') ? force : !menu.classList.contains('open');
+      menu.classList.toggle('open', open);
+      document.getElementById('fabBackdrop').classList.toggle('open', open);
+      document.getElementById('fabBtn').classList.toggle('open', open);
+    }
+    function fabGo(action) {
+      toggleFab(false);
+      if (action === 'manual') openManualAddModal();
+      else if (action === 'gemini') toggleGeminiChatDrawer(true);
+      else openPlanImportModal();
+    }
+
+    // Manual add (main or extra)
+    let manualTarget = 'main';
+    function setManualTarget(t) {
+      manualTarget = t;
+      document.getElementById('manualTargetMain').classList.toggle('active', t === 'main');
+      document.getElementById('manualTargetExtra').classList.toggle('active', t === 'extra');
+    }
+    function openManualAddModal() {
+      setManualTarget(currentSubTab === 'extra' ? 'extra' : 'main');
+      document.getElementById('manualAddModalBackdrop').classList.add('open');
+    }
+    function closeManualAddModal(e) {
+      const bd = document.getElementById('manualAddModalBackdrop');
+      if (e && e.target !== bd) return;
+      bd.classList.remove('open');
+    }
+
+    // Import target (main or extra)
+    let selectedImportTarget = 'main';
+    function effImportMode() { return selectedImportTarget === 'extra' ? 'keep' : selectedImportMode; }
+    function setImportTarget(t) {
+      selectedImportTarget = t;
+      document.getElementById('importTargetMainBtn').classList.toggle('active', t === 'main');
+      document.getElementById('importTargetExtraBtn').classList.toggle('active', t === 'extra');
+      document.getElementById('importModeWrap').style.display = t === 'extra' ? 'none' : 'flex';
+      renderStagingPreview();
+    }
+
+    function sendQuickGeminiPrompt(text) {
+      const inp = document.getElementById('geminiPromptInput');
+      inp.value = text;
+      sendGeminiMessage();
+    }
+
+    function appendChatBubble(role, htmlContent) {
+      const box = document.getElementById('geminiChatMessages');
+      const msg = document.createElement('div');
+      msg.className = 'chat-msg ' + role;
+      msg.innerHTML = htmlContent;
+      box.appendChild(msg);
+      box.scrollTop = box.scrollHeight;
+      return msg;
+    }
+
+    async function sendGeminiMessage() {
+      const inp = document.getElementById('geminiPromptInput');
+      const userText = inp.value.trim();
+      if (!userText) return;
+
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        openApiKeyModal();
+        showToast('กรุณาใส่ Gemini API Key ก่อนใช้งาน');
+        return;
+      }
+
+      inp.value = '';
+      appendChatBubble('user', userText.replace(/</g, '&lt;'));
+
+      const sendBtn = document.getElementById('btnGeminiSend');
+      sendBtn.disabled = true;
+      const loadingBubble = appendChatBubble('ai', '<em>กำลังจัดตาราง...</em>');
+
+      const d = ensureDayExists(currentDayKey);
+      const currentTasksSummary = (d.tasks || []).map(t =>
+        `- ${t.text} [${t.cat}] เวลา ${t.time} (${t.durH}ชม. ${t.durM}น.) สถานะ: ${t.done ? 'ทำเสร็จแล้ว (เวลานี้ว่างทับได้)' : 'ยังไม่ได้ทำ'}`
+      ).join('\n');
+      const extraTasksSummary = (d.extraTasks || []).map(t =>
+        `- ${t.text} เวลา ${t.time} (${t.durH}ชม. ${t.durM}น.) สถานะ: ${t.done ? 'ทำเสร็จแล้ว' : 'ยังไม่ได้ทำ'}`
+      ).join('\n') || 'ไม่มี';
+
+      const systemPrompt = `คุณคือที่ปรึกษาและโค้ชวางแผนสอบเข้าปริญญาโท Kyoto University (Dept. of Urban Management) และทุน ADB-JSP โดยมีเป้าหมายสอบ IELTS ให้ได้ 6.5
+ข้อมูลของวันที่ผู้ใช้กำลังเปิดดูอยู่:
+- วันที่: ${d.dateName} (รหัส ${currentDayKey})
+- หัวข้อประจำวันปัจจุบัน: ${d.head}
+- รายละเอียดประจำวัน: ${d.body}
+- ภารกิจหลักปัจจุบัน:
+${currentTasksSummary || 'ไม่มี'}
+- ภารกิจเสริมประจำวัน:
+${extraTasksSummary}
+
+หน้าที่ของคุณ:
+1. ตอบคำถาม ให้คำปรึกษา หรือช่วยปรับแผนภารกิจหลักตามที่ผู้ใช้ต้องการอย่างกระชับ ชัดเจน และให้กำลังใจ
+2. หากผู้ใช้ต้องการปรับแผน เพิ่มความเข้มข้น เปลี่ยนหัวข้อ หรือจัดตารางใหม่ ให้ตั้งค่า "shouldUpdatePlan": true และสร้างรายการ "proposedTasks" ที่ระบุ text, cat ("IELTS", "Research", "ADB", หรือ "Deliverable"), durH (ชั่วโมง จำนวนเต็ม), durM (นาที: 0, 15, 30, 45) และ time ("HH:MM") ที่ไม่ชนกับภารกิจเสริมที่ยังไม่เสร็จ (ส่วนงานที่ทำเสร็จแล้วถือว่าเวลาว่าง สามารถจัดทับเวลาได้)
+3. ตอบกลับเป็น JSON เท่านั้นตามโครงสร้างนี้:
+{
+  "reply": "คำแนะนำสั้นๆ กระชับ (ภาษาไทย)",
+  "shouldUpdatePlan": true,
+  "proposedHead": "หัวข้อประจำวันใหม่",
+  "proposedBody": "คำอธิบายสั้นๆ ของแผนใหม่",
+  "proposedTasks": [
+    { "text": "[IELTS] รายละเอียดงาน", "cat": "IELTS", "time": "08:00", "durH": 2, "durM": 30 }
+  ]
+}`;
+
+      let model = getGeminiModel();
+      const requestBody = JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: 'user', parts: [{ text: userText }] }],
+        generationConfig: {
+          temperature: 0.7,
+          responseMimeType: "application/json"
+        }
+      });
+
+      try {
+        let url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+        let res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: requestBody
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = (errData.error && errData.error.message) ? errData.error.message : `HTTP ${res.status}`;
+          const suggestedMatch = errMsg.match(/models\/(gemini-[a-zA-Z0-9.-]+)/);
+          const fallbackModel = suggestedMatch ? suggestedMatch[1] : (model !== 'gemini-3.8-flash' ? 'gemini-3.8-flash' : 'gemini-3.5-flash-lite');
+
+          if (fallbackModel && fallbackModel !== model) {
+            model = fallbackModel;
+            try { localStorage.setItem('kyoto_gemini_model', model); } catch (e) {}
+            const retryUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+            res = await fetch(retryUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: requestBody
+            });
+          }
+
+          if (!res.ok) {
+            const errData2 = await res.json().catch(() => ({}));
+            const errMsg2 = (errData2.error && errData2.error.message) ? errData2.error.message : errMsg;
+            loadingBubble.innerHTML = `<span style="color:var(--red); font-weight:700;">เชื่อมต่อไม่สำเร็จ:</span> ${errMsg2}`;
+            sendBtn.disabled = false;
+            return;
+          }
+        }
+
+        const data = await res.json();
+        const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        let parsed = {};
+        try {
+          parsed = JSON.parse(rawText);
+        } catch (parseErr) {
+          const match = rawText.match(/\{[\s\S]*\}/);
+          if (match) parsed = JSON.parse(match[0]);
+          else parsed = { reply: rawText, shouldUpdatePlan: false, proposedTasks: [] };
+        }
+
+        const replyHtml = (parsed.reply || 'วิเคราะห์แผนเรียบร้อยครับ').replace(/\n/g, '<br>');
+        let proposalHtml = '';
+
+        if (parsed.proposedTasks && Array.isArray(parsed.proposedTasks) && parsed.proposedTasks.length > 0) {
+          const propId = 'prop_' + Date.now();
+          const normalizedTasks = parsed.proposedTasks.map(pt => normalizeGeminiTaskItem(pt));
+
+          geminiProposalsMap[propId] = {
+            dayKey: currentDayKey,
+            head: parsed.proposedHead || d.head,
+            body: parsed.proposedBody || d.body,
+            tasks: normalizedTasks
+          };
+
+          const rowsHtml = normalizedTasks.map(pt => {
+            const et = calculateEndTime(pt.time, pt.durH, pt.durM);
+            return `
+              <div class="proposed-task-row">
+                <div style="flex:1; font-weight:700;">${pt.text.replace(/^\[.*?\]\s*/, '')}</div>
+                <span style="font-size:11px; color:var(--sub); flex-shrink:0;">${pt.time}–${et}</span>
+              </div>
+            `;
+          }).join('');
+
+          proposalHtml = `
+            <div class="proposed-plan-card">
+              ${rowsHtml}
+              <div class="proposed-plan-actions">
+                <button type="button" class="btn-apply-plan" onclick="applyGeminiProposal('${propId}', 'replace')">
+                  แทนที่งานเดิม
+                </button>
+                <button type="button" class="btn-apply-plan secondary" onclick="applyGeminiProposal('${propId}', 'append')">
+                  เพิ่มต่อท้าย
+                </button>
+              </div>
+            </div>
+          `;
+        }
+
+        loadingBubble.innerHTML = `<div>${replyHtml}</div>${proposalHtml}`;
+      } catch (err) {
+        loadingBubble.innerHTML = `<span style="color:var(--red); font-weight:700;">เกิดข้อผิดพลาด:</span> ${err.message}`;
+      } finally {
+        sendBtn.disabled = false;
+        const box = document.getElementById('geminiChatMessages');
+        box.scrollTop = box.scrollHeight;
+      }
+    }
+
+    function normalizeGeminiTimeStr(rawTime) {
+      const str = String(rawTime || '08:00').trim();
+      const match = str.match(/(\d{1,2})[:.](\d{2})/);
+      if (match) {
+        const hh = Math.max(0, Math.min(23, parseInt(match[1]) || 8));
+        const mm = Math.max(0, Math.min(59, parseInt(match[2]) || 0));
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      }
+      return '08:00';
+    }
+
+    function normalizeGeminiTaskItem(pt) {
+      const cleanTime = normalizeGeminiTimeStr(pt.time);
+      let rawH = parseFloat(pt.durH);
+      let rawM = parseInt(pt.durM) || 0;
+      if (isNaN(rawH)) rawH = 1;
+
+      let totalMins = Math.round(rawH * 60) + (rawH % 1 === 0 ? rawM : 0);
+      if (totalMins <= 0) totalMins = 60;
+      const dh = Math.floor(totalMins / 60);
+      const remM = totalMins % 60;
+      const dm = [0, 15, 30, 40, 45, 50].reduce((prev, curr) => Math.abs(curr - remM) < Math.abs(prev - remM) ? curr : prev);
+
+      const textStr = (pt.text || '[ภารกิจหลัก] งานที่ปรับโดย AI').trim();
+      const catStr = pt.cat || detectTaskCategory(textStr);
+
+      return {
+        text: textStr,
+        cat: catStr,
+        time: cleanTime,
+        durH: dh,
+        durM: dm
+      };
+    }
+
+    function applyGeminiProposal(propId, mode) {
+      const prop = geminiProposalsMap[propId];
+      if (!prop) return;
+
+      const d = ensureDayExists(prop.dayKey);
+      if (prop.head) d.head = prop.head;
+      if (prop.body) d.body = prop.body;
+
+      const newTasks = prop.tasks.map((pt, idx) => ({
+        id: `ai_${Date.now()}_${idx}`,
+        text: pt.text,
+        cat: pt.cat,
+        time: pt.time,
+        durH: pt.durH,
+        durM: pt.durM,
+        done: false,
+        calSynced: false
+      }));
+
+      if (mode === 'replace') {
+        const doneTasks = (d.tasks || []).filter(t => t.done);
+        d.tasks = [...doneTasks, ...newTasks];
+      } else {
+        d.tasks = [...(d.tasks || []), ...newTasks];
+      }
+
+      d.tasks.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+      saveStorage();
+      selectDay(prop.dayKey);
+      showToast(`อัปเดตแผนวันที่ ${d.shortDate} แล้ว`);
+    }
+
+    function detectTaskCategory(text) {
+      const lower = (text || '').toLowerCase();
+      if (lower.includes('ielts') || lower.includes('listening') || lower.includes('reading') || lower.includes('writing') || lower.includes('speaking') || lower.includes('cambridge') || lower.includes('คำศัพท์')) {
+        return 'IELTS';
+      }
+      if (lower.includes('adb') || lower.includes('ทุน')) {
+        return 'ADB';
+      }
+      if (lower.includes('proposal') || lower.includes('วิจัย') || lower.includes('เปเปอร์') || lower.includes('เกียวโต') || lower.includes('literature') || lower.includes('methodology')) {
+        return 'Research';
+      }
+      return 'IELTS';
+    }
+
+    function parseHoursFloatToHM(val) {
+      if (typeof val === 'number') {
+        const totalMins = Math.max(15, Math.round(val * 60));
+        return { durH: Math.floor(totalMins / 60), durM: totalMins % 60 };
+      }
+      const str = String(val || '2').trim();
+      if (str.includes(':')) {
+        const parts = str.split(':');
+        return { durH: parseInt(parts[0]) || 0, durM: parseInt(parts[1]) || 0 };
+      }
+      const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+      if (isNaN(num) || num <= 0) return { durH: 2, durM: 0 };
+      const totalMins = Math.max(15, Math.round(num * 60));
+      const h = Math.floor(totalMins / 60);
+      const rawM = totalMins % 60;
+      const snappedM = [0, 15, 30, 40, 45, 50].reduce((prev, curr) => Math.abs(curr - rawM) < Math.abs(prev - rawM) ? curr : prev);
+      return { durH: h, durM: snappedM };
+    }
+
+    function normalizeDateInputToKey(rawDate) {
+      if (!rawDate) return currentDayKey;
+      if (typeof rawDate === 'number' && rawDate > 40000 && rawDate < 60000) {
+        const utcDays = Math.floor(rawDate - 25569);
+        const dObj = new Date(utcDays * 86400 * 1000);
+        const y = dObj.getUTCFullYear();
+        const m = String(dObj.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dObj.getUTCDate()).padStart(2, '0');
+        return `d_${y}${m}${d}`;
+      }
+
+      const s = String(rawDate).trim();
+      let m1 = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+      if (m1) {
+        const year = parseInt(m1[1]) > 2500 ? parseInt(m1[1]) - 543 : parseInt(m1[1]);
+        return `d_${year}${String(m1[2]).padStart(2, '0')}${String(m1[3]).padStart(2, '0')}`;
+      }
+      let m2 = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+      if (m2) {
+        const year = parseInt(m2[3]) > 2500 ? parseInt(m2[3]) - 543 : parseInt(m2[3]);
+        return `d_${year}${String(m2[2]).padStart(2, '0')}${String(m2[1]).padStart(2, '0')}`;
+      }
+      let m3 = s.match(/^(\d{8})$/);
+      if (m3) return `d_${m3[1]}`;
+
+      for (let mIdx = 1; mIdx <= 12; mIdx++) {
+        const mName = thaiShortMonths[mIdx];
+        if (mName && s.includes(mName)) {
+          const nums = s.match(/\d+/g) || [];
+          const dayNum = parseInt(nums[0]) || 15;
+          let yr = nums[1] ? parseInt(nums[1]) : 2026;
+          if (yr > 2500) yr -= 543;
+          if (yr < 100) yr += 2000;
+          return `d_${yr}${String(mIdx).padStart(2, '0')}${String(dayNum).padStart(2, '0')}`;
+        }
+      }
+
+      return currentDayKey;
+    }
+
+    function openPlanImportModal() {
+      setImportTarget(currentSubTab === 'extra' ? 'extra' : 'main');
+      document.getElementById('manualPlanDateInput').value = keyToIsoHyphen(currentDayKey);
+      renderStagingPreview();
+      document.getElementById('planImportModalBackdrop').classList.add('open');
+    }
+
+    function closePlanImportModal(e) {
+      if (e && e.target !== document.getElementById('planImportModalBackdrop')) return;
+      document.getElementById('planImportModalBackdrop').classList.remove('open');
+    }
+
+    function switchImportTab(tab) {
+      document.getElementById('importTabManualBtn').classList.toggle('active', tab === 'manual');
+      document.getElementById('importTabFileBtn').classList.toggle('active', tab === 'file');
+      document.getElementById('importPanelManual').style.display = tab === 'manual' ? 'block' : 'none';
+      document.getElementById('importPanelFile').style.display = tab === 'file' ? 'block' : 'none';
+    }
+
+    function selectImportConflictMode(mode) {
+      selectedImportMode = mode;
+      document.getElementById('importModeBoxReplace').classList.toggle('selected', mode === 'replace');
+      document.getElementById('importModeBoxKeep').classList.toggle('selected', mode === 'keep');
+      const radios = document.querySelectorAll('input[name="importConflictMode"]');
+      radios.forEach(r => { r.checked = (r.value === mode); });
+      renderStagingPreview();
+    }
+
+    function addManualStagingRow() {
+      const dateVal = document.getElementById('manualPlanDateInput').value;
+      const catVal = document.getElementById('manualPlanCatSelect').value;
+      const hrsVal = document.getElementById('manualPlanHoursInput').value;
+      const textInp = document.getElementById('manualPlanTaskInput');
+      const textVal = textInp.value.trim();
+
+      if (!textVal) {
+        showToast('กรุณาใส่ชื่อภารกิจ');
+        return;
+      }
+
+      const dayKey = normalizeDateInputToKey(dateVal);
+      const { durH, durM } = parseHoursFloatToHM(hrsVal);
+      const formattedText = textVal.startsWith('[') ? textVal : `[${catVal}] ${textVal}`;
+
+      stagingImportTasks.push({
+        tempId: 'stg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+        dayKey,
+        text: formattedText,
+        cat: catVal,
+        durH,
+        durM
+      });
+
+      textInp.value = '';
+      renderStagingPreview();
+    }
+
+    function parseBulkTextareaToStaging() {
+      const raw = document.getElementById('bulkPlanTextarea').value.trim();
+      if (!raw) {
+        showToast('กรุณาวางข้อความภารกิจก่อน');
+        return;
+      }
+
+      const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      let added = 0;
+
+      lines.forEach(line => {
+        let parts = line.includes('|') ? line.split('|') : (line.includes('\t') ? line.split('\t') : line.split(','));
+        parts = parts.map(p => p.trim()).filter(Boolean);
+
+        if (parts.length >= 2) {
+          let dayKey = currentDayKey;
+          let taskText = '';
+          let hoursPart = '2';
+
+          if (parts.length >= 3) {
+            dayKey = normalizeDateInputToKey(parts[0]);
+            taskText = parts[1];
+            hoursPart = parts[2];
+          } else {
+            taskText = parts[0];
+            hoursPart = parts[1];
+          }
+
+          const { durH, durM } = parseHoursFloatToHM(hoursPart);
+          const cat = detectTaskCategory(taskText);
+          stagingImportTasks.push({
+            tempId: 'stg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            dayKey,
+            text: taskText,
+            cat,
+            durH,
+            durM
+          });
+          added++;
+        }
+      });
+
+      if (added > 0) {
+        document.getElementById('bulkPlanTextarea').value = '';
+        renderStagingPreview();
+        showToast(`ดึงข้อมูล ${added} รายการแล้ว`);
+      } else {
+        showToast('รูปแบบไม่ถูกต้อง ใช้ | คั่น เช่น 2026-10-16 | อ่านเปเปอร์ | 2');
+      }
+    }
+
+    function handlePlanFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      const isCSV = file.name.toLowerCase().endsWith('.csv');
+
+      reader.onload = function(e) {
+        try {
+          let rows = [];
+          if (typeof XLSX !== 'undefined') {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+          } else if (isCSV) {
+            const text = new TextDecoder('utf-8').decode(e.target.result);
+            rows = text.split(/\r?\n/).map(line => line.split(','));
+          }
+
+          let importedCount = 0;
+          let dateIdx = 0, taskIdx = 1, hoursIdx = 2, catIdx = 3;
+
+          rows.forEach((row, idx) => {
+            if (!row || row.length < 2) return;
+            const cells = row.map(c => String(c !== undefined && c !== null ? c : '').trim());
+
+            if (idx === 0) {
+              const joined = cells.join(' ').toLowerCase();
+              if (joined.includes('date') || joined.includes('วันที่') || joined.includes('task') || joined.includes('ภารกิจ') || joined.includes('รายละเอียด') || joined.includes('ชั่วโมง') || joined.includes('ชม')) {
+                cells.forEach((h, colI) => {
+                  const hl = h.toLowerCase();
+                  if (hl.includes('date') || hl.includes('วันที่') || hl.includes('วัน')) dateIdx = colI;
+                  else if (hl.includes('task') || hl.includes('ภารกิจ') || hl.includes('รายละเอียด') || hl.includes('งาน') || hl.includes('detail')) taskIdx = colI;
+                  else if (hl.includes('hour') || hl.includes('ชม') || hl.includes('ชั่วโมง') || hl.includes('เวลา') || hl.includes('duration')) hoursIdx = colI;
+                  else if (hl.includes('cat') || hl.includes('หมวด')) catIdx = colI;
+                });
+                return;
+              }
+            }
+
+            const rawDateCell = row[dateIdx] !== undefined ? row[dateIdx] : cells[0];
+            const taskText = cells[taskIdx] || cells[1] || '';
+            const rawHoursCell = cells[hoursIdx] !== undefined && cells[hoursIdx] !== '' ? cells[hoursIdx] : '2';
+            const rawCatCell = cells[catIdx] || '';
+
+            if (!taskText) return;
+
+            const dayKey = normalizeDateInputToKey(rawDateCell);
+            const { durH, durM } = parseHoursFloatToHM(rawHoursCell);
+            const cat = rawCatCell || detectTaskCategory(taskText);
+
+            stagingImportTasks.push({
+              tempId: 'stg_file_' + Date.now() + '_' + idx,
+              dayKey,
+              text: taskText,
+              cat,
+              durH,
+              durM
+            });
+            importedCount++;
+          });
+
+          event.target.value = '';
+          renderStagingPreview();
+          if (importedCount > 0) {
+            showToast(`นำเข้า ${importedCount} ภารกิจแล้ว`);
+          } else {
+            showToast('ไม่พบข้อมูลในไฟล์');
+          }
+        } catch (err) {
+          showToast('อ่านไฟล์ไม่ได้: ' + err.message);
+        }
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+
+    function downloadSamplePlanCSV() {
+      const sampleRows = [
+        "Date,Task,Hours,Category",
+        "2026-10-16,[IELTS] ฝึกทำโจทย์ Reading True/False/Not Given 4 บทความ,2.5,IELTS",
+        "2026-10-16,[IELTS] ทบทวน Error Log และท่องศัพท์ Academic 40 คำ,1.5,IELTS",
+        "2026-10-16,[Proposal] อ่านเปเปอร์แล็บ Urban Management ม.เกียวโต 2 ฉบับ,2,Research",
+        "2026-10-17,[IELTS] ซ้อมเขียน Writing Task 1 & Task 2 จับเวลาจริง,3,IELTS",
+        "2026-10-17,[Proposal] ร่าง Problem Statement & Research Questions,2.5,Research"
+      ].join("\n");
+
+      const blob = new Blob(["\uFEFF" + sampleRows], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "kyoto_plan_template.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function clearStagingTasks() {
+      stagingImportTasks = [];
+      renderStagingPreview();
+    }
+
+    function removeStagingItem(tempId) {
+      stagingImportTasks = stagingImportTasks.filter(x => x.tempId !== tempId);
+      renderStagingPreview();
+    }
+
+    function generateAutoTimesForDayPreview(dayKey, itemsForDay, mode) {
+      const dayData = ensureDayExists(dayKey);
+      const occupiedIntervals = [];
+
+      (dayData.extraTasks || []).forEach(et => {
+        if (!et.done) {
+          const st = timeToMinutes(et.time);
+          const dur = Math.max(10, (parseInt(et.durH) || 0) * 60 + (parseInt(et.durM) || 0));
+          occupiedIntervals.push([st, st + dur]);
+        }
+      });
+
+      if (mode === 'keep') {
+        (dayData.tasks || []).forEach(mt => {
+          if (!mt.done) {
+            const st = timeToMinutes(mt.time);
+            const dur = Math.max(10, (parseInt(mt.durH) || 0) * 60 + (parseInt(mt.durM) || 0));
+            occupiedIntervals.push([st, st + dur]);
+          }
+        });
+      }
+
+      let cursorMins = 8 * 60;
+
+      return itemsForDay.map(item => {
+        const durMins = Math.max(15, (parseInt(item.durH) || 0) * 60 + (parseInt(item.durM) || 0));
+        let candidate = Math.max(8 * 60, cursorMins);
+
+        while (candidate <= 22 * 60 - durMins) {
+          const candEnd = candidate + durMins;
+
+          if (candidate < 13 * 60 && candEnd > 12 * 60 + 15) {
+            candidate = 13 * 60;
+            continue;
+          }
+
+          if (candidate < 18 * 60 + 30 && candEnd > 17 * 60 + 45) {
+            candidate = 18 * 60 + 30;
+            continue;
+          }
+
+          const hit = occupiedIntervals.find(([oStart, oEnd]) => Math.max(candidate, oStart) < Math.min(candEnd, oEnd));
+          if (hit) {
+            candidate = hit[1] + 15;
+            candidate = Math.ceil(candidate / 15) * 15;
+            continue;
+          }
+
+          break;
+        }
+
+        const assignedStart = minutesToTime(candidate);
+        const assignedEnd = minutesToTime(candidate + durMins);
+        occupiedIntervals.push([candidate, candidate + durMins]);
+        cursorMins = Math.ceil((candidate + durMins + 15) / 15) * 15;
+
+        return {
+          ...item,
+          time: assignedStart,
+          endTime: assignedEnd
+        };
+      });
+    }
+
+    function renderStagingPreview() {
+      const container = document.getElementById('importStagingContainer');
+      document.getElementById('stagingCountLbl').innerText = stagingImportTasks.length;
+
+      if (stagingImportTasks.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; color:var(--sub); font-size:11.5px; padding:12px;">
+            ยังไม่มีรายการในคิว
+          </div>
+        `;
+        return;
+      }
+
+      const grouped = {};
+      stagingImportTasks.forEach(item => {
+        if (!grouped[item.dayKey]) grouped[item.dayKey] = [];
+        grouped[item.dayKey].push(item);
+      });
+
+      let html = '';
+      Object.keys(grouped).sort().forEach(dayKey => {
+        const dayObj = ensureDayExists(dayKey);
+        const scheduledItems = generateAutoTimesForDayPreview(dayKey, grouped[dayKey], effImportMode());
+
+        html += `<div style="font-size:11px; font-weight:800; color:var(--primary); margin:4px 0 3px 4px;">${dayObj.shortDate}</div>`;
+        scheduledItems.forEach(st => {
+          html += `
+            <div class="staging-item">
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; color:var(--text);">${st.text.replace(/^\[.*?\]\s*/, '')}</div>
+                <div style="color:var(--sub); font-size:10.5px;">
+                  ⏰ ${st.time} – ${st.endTime} (${formatDuration(st.durH, st.durM)})
+                </div>
+              </div>
+              <button type="button" class="btn-mini-act danger" style="padding:2px 8px;" onclick="removeStagingItem('${st.tempId}')">✕</button>
+            </div>
+          `;
+        });
+      });
+
+      container.innerHTML = html;
+    }
+
+    function commitStagingPlanToSchedule() {
+      if (stagingImportTasks.length === 0) {
+        showToast('กรุณาเพิ่มรายการก่อนบันทึก');
+        return;
+      }
+
+      const grouped = {};
+      stagingImportTasks.forEach(item => {
+        if (!grouped[item.dayKey]) grouped[item.dayKey] = [];
+        grouped[item.dayKey].push(item);
+      });
+
+      const updatedDayKeys = Object.keys(grouped).sort();
+      updatedDayKeys.forEach(dayKey => {
+        const d = ensureDayExists(dayKey);
+        const scheduledItems = generateAutoTimesForDayPreview(dayKey, grouped[dayKey], effImportMode());
+
+        const newTaskObjs = scheduledItems.map((st, idx) => ({
+          id: `imp_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 5)}`,
+          text: st.text,
+          cat: st.cat || detectTaskCategory(st.text),
+          time: st.time,
+          durH: st.durH,
+          durM: st.durM,
+          done: false,
+          calSynced: false
+        }));
+
+        if (selectedImportTarget === 'extra') {
+          d.extraTasks = [...(d.extraTasks || []), ...newTaskObjs.map(o => ({ ...o, cat: o.cat || 'Sport & Life' }))];
+          d.extraTasks.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+        } else if (effImportMode() === 'replace') {
+          const keepDone = document.getElementById('chkKeepDoneOnReplace') && document.getElementById('chkKeepDoneOnReplace').checked;
+          const completedTasks = keepDone ? (d.tasks || []).filter(t => t.done) : [];
+          d.tasks = [...completedTasks, ...newTaskObjs];
+          d.head = `แผนอัปเดตใหม่ (${d.shortDate})`;
+          d.body = `รวม ${newTaskObjs.length} ภารกิจ`;
+        } else {
+          d.tasks = [...(d.tasks || []), ...newTaskObjs];
+        }
+
+        d.tasks.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+      });
+
+      stagingImportTasks = [];
+      saveStorage();
+      currentDayKey = updatedDayKeys[0] || currentDayKey;
+      renderAll();
+      switchSubTab(selectedImportTarget);
+      closePlanImportModal();
+      scrollToSelectedPill();
+      showToast(`บันทึกแผนเข้า${selectedImportTarget === 'extra' ? 'งานเสริม' : 'งานหลัก'}แล้ว (${updatedDayKeys.length} วัน)`);
+    }
+
+    // Status popup (toast) removed: kept as a no-op so existing calls do nothing
+    function showToast() {}
+
+    function renderAll() {
+      renderDayStrip();
+      renderDailyOverview();
+      renderTaskLists();
+      renderDashboardChart();
+      updateApiKeyVisualStatus();
+    }
+
+    // Init
+    loadStorage();
+    renderKeywords();
+    renderAll();
+  </script>
+</body>
+</html>
