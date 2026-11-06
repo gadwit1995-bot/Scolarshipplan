@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F8F6F1">
+<title>Kyoto Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js" defer></script>
+<style>
+:root{
+  --primary:#0E8C7D;
+  --primary-mid:#159C8A;
+  --primary-bright:#2DBCA4;
+  --primary-soft:#E6F3EC;
+  --bg-outer:#E8E1D3;
+  --bg:#F8F6F1;
+  --card:#FFFFFF;
+  --text:#182422;
+  --sub:#6E7471;
+  --line:#E7E1D5;
+  --green:#0D9488;
+  --red:#D9383A;
+  --r-lg:22px;
+  --r-md:14px;
+  --r-sm:8px;
+  --nav-h:76px;
+  --ring-a:#2DBCA4;
+  --ring-b:#3E7080;
+  --ring-c:#EAAE4F;
+  --shadow-card:0 2px 10px rgba(24,36,34,.06);
+  --safe-b:env(safe-area-inset-bottom);
+  --safe-t:env(safe-area-inset-top);
+  --font-sans:"IBM Plex Sans Thai",-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-display:"Space Grotesk","IBM Plex Sans Thai",sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg-outer)}
+body{font-family:var(--font-sans);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.app{max-width:480px;margin:0 auto;min-height:100dvh;background:var(--bg);padding-bottom:calc(var(--nav-h) + var(--safe-b) + 28px)}
+@media(min-width:520px){.app{box-shadow:0 0 0 1px var(--line),0 24px 64px rgba(14,140,125,.12)}}
+.view{display:none}.view.on{display:block}
+
+/* Top bar */
+.top{position:sticky;top:0;z-index:20;background:rgba(242,247,247,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:calc(var(--safe-t) + 12px) 16px 10px;border-bottom:1px solid var(--line)}
+.top.simple{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px}
+.top h1{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:-.4px;color:var(--text)}
+.top-row{display:flex;align-items:center;justify-content:space-between}
+.month-btn{border:0;background:none;font-family:var(--font-display);font-size:20px;font-weight:700;display:flex;align-items:center;gap:6px;letter-spacing:-.3px;color:var(--text)}
+.month-btn svg{color:var(--primary)}
+.top-actions{display:flex;gap:6px;align-items:center}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;display:grid;place-items:center;color:var(--text);flex:none}
+.icon-btn:active{background:var(--primary-soft)}
+.pill-btn{border:1px solid rgba(14,140,125,.2);background:var(--primary-soft);color:var(--primary);font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px}
+
+/* Week Strip */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.wd{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;border:1px solid transparent;border-radius:var(--r-sm);background:none;font-size:11.5px;color:var(--sub);font-weight:600}
+.wd b{font-family:var(--font-display);font-size:15px;color:var(--text);width:32px;height:32px;display:grid;place-items:center;border-radius:var(--r-sm)}
+.wd.sel{background:rgba(45,188,164,.12);border-color:rgba(14,140,125,.22)}
+.wd.sel b{background:linear-gradient(145deg,var(--primary-bright),var(--primary));color:#fff}
+.wd.today:not(.sel) b{color:var(--primary);box-shadow:inset 0 0 0 1.5px var(--primary)}
+.wd i{width:14px;height:3px;border-radius:2px}.wd i.has{background:#7FD3BE}.wd i.full{background:var(--green)}
+
+.wrap{padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-card)}
+
+/* Hero Day Card + Unified 3-Action Dock */
+.day-card{
+  position:relative;
+  cursor:pointer;
+  margin-top:12px;
+  margin-bottom:10px;
+  border:0;
+  border-radius:var(--r-lg);
+  background:linear-gradient(155deg,#2DBCA4 0%,#159C8A 48%,#0E8C7D 100%);
+  color:#fff;
+  padding:18px 18px 16px;
+  box-shadow:0 12px 28px rgba(14,140,125,.22);
+}
+.dc-top{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:rgba(255,255,255,.88);font-weight:500;gap:8px}
+.dc-phase{font-family:var(--font-mono);background:rgba(24,36,34,.28);color:#fff;padding:3px 9px;border-radius:6px;font-weight:600;font-size:11px;border:1px solid rgba(255,255,255,.22)}
+.dc-head{font-size:18px;font-weight:700;margin-top:8px;line-height:1.35;padding-right:28px;color:#fff}
+.dc-head.muted{color:rgba(255,255,255,.75);font-weight:500;font-size:16px}
+.dc-body{font-size:13.5px;color:rgba(255,255,255,.88);margin-top:5px;line-height:1.5;max-width:65ch}
+.dc-prog{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--font-mono);font-size:12px;color:#fff;font-weight:500;white-space:nowrap}
+.pbar{flex:1;height:6px;background:rgba(24,36,34,.28);border-radius:4px;overflow:hidden}
+.pbar>span{display:block;height:100%;background:#fff;border-radius:4px;transition:width .35s ease}
+.card .pbar{background:var(--line)}
+.card .pbar>span{background:linear-gradient(90deg,var(--primary-bright),var(--primary))}
+.dc-edit{position:absolute;right:14px;top:44px;color:rgba(255,255,255,.8);width:28px;height:28px;display:grid;place-items:center;border-radius:6px;background:rgba(255,255,255,.14)}
+
+/* Unified 3-Button Action Dock (No Horizontal Scroll, All in Same View) */
+.chips{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  padding:0 16px 12px;
+}
+.chip{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:11px 6px;
+  border-radius:var(--r-md);
+  background:var(--card);
+  border:1px solid var(--line);
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text);
+  text-align:center;
+  line-height:1.25;
+  box-shadow:0 2px 6px rgba(14,140,125,.05);
+}
+.chip svg{
+  color:var(--primary);
+  background:var(--primary-soft);
+  width:32px;
+  height:32px;
+  padding:6px;
+  border-radius:var(--r-sm);
+}
+.chip:active{background:var(--primary-soft);border-color:var(--primary-mid)}
+
+/* Progress Rings */
+.ring-card{display:flex;justify-content:space-between;gap:6px;padding:16px 10px}
+.ring-item{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1}
+.ring{position:relative;width:72px;height:72px}
+.ring svg{transform:rotate(-90deg)}
+.ring-val{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text)}
+.ring-lbl{font-size:11.5px;font-weight:600;color:var(--sub);text-align:center}
+
+/* Ask Coach bar + mascot */
+.ask-bar{width:100%;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:9px 16px 9px 9px;margin-bottom:12px;box-shadow:var(--shadow-card);text-align:left}
+.ask-bar span{color:var(--sub);font-size:14px;font-weight:500}
+.mascot-ic{flex:none;display:block}
+.msg-row{display:flex;gap:8px;align-items:flex-end;margin:4px 0}
+.msg-row .mascot-ic{margin-bottom:2px}
+.msg-row .msg{margin:0}
+
+/* Toolbar */
+.toolbar{display:flex;justify-content:space-between;align-items:center;padding:0 16px 12px;gap:8px}
+.seg{display:inline-flex;background:#F0EBDF;padding:3px;border-radius:var(--r-sm);border:1px solid var(--line)}
+.seg button{border:0;background:none;padding:6px 11px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--sub);display:flex;gap:5px;align-items:center;white-space:nowrap}
+.seg button.on{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(24,36,34,.08)}
+.seg.sm button{padding:6px 9px;font-size:12px}
+.seg.full{display:flex;width:100%}.seg.full button{flex:1;justify-content:center;padding:8px}
+
+/* Tasks */
+#taskArea{padding:0 16px}
+.sec-lbl{font-size:12px;font-weight:700;color:var(--sub);margin:8px 2px 8px;display:flex;align-items:center;gap:6px}
+.task{display:flex;align-items:flex-start;gap:12px;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px 13px 16px;margin-bottom:8px;position:relative;overflow:hidden}
+.task::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.chk{flex:none;width:24px;height:24px;border-radius:6px;border:2px solid #B6CECE;background:#fff;display:grid;place-items:center;color:transparent;margin-top:1px}
+.task.done .chk{background:var(--green);border-color:var(--green);color:#fff}
+.task.done{opacity:.65;background:#FBF9F4}
+.task.done .t-title{text-decoration:line-through;color:var(--sub)}
+.t-main{flex:1;min-width:0;cursor:pointer}
+.t-title{font-size:15px;font-weight:600;line-height:1.4;color:var(--text)}
+.t-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:12px;color:var(--sub);align-items:center}
+.t-time{font-family:var(--font-mono);font-size:11.5px;color:var(--text);background:#F5F1E9;padding:2px 7px;border-radius:5px;font-weight:500}
+.cat{padding:2px 8px;border-radius:5px;background:color-mix(in srgb,var(--c) 13%,#fff);color:var(--c);font-weight:700;font-size:11px}
+.tag{padding:2px 7px;border-radius:5px;background:#F3EFE5;color:var(--sub);font-weight:600;font-size:11px;display:inline-flex;gap:4px;align-items:center}
+.tag.ok{background:#EAF4EC;color:var(--green)}
+.warn{color:var(--red);font-weight:700;display:inline-flex;gap:3px;align-items:center;background:#FDECEC;padding:2px 7px;border-radius:5px}
+.note-ic{color:var(--primary-mid);display:inline-flex;align-items:center}
+.tmr-btn{flex:none;align-self:center;width:34px;height:34px;border-radius:17px;border:1.5px solid var(--line);background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;gap:6px;padding:0}
+.tmr-btn.run{width:auto;padding:0 12px;background:var(--red);border-color:var(--red);color:#fff}
+.tmr-btn .tmr-time{font-family:var(--font-mono);font-size:12px;font-weight:700;white-space:nowrap}
+.task.timing{border-color:var(--red);box-shadow:0 0 0 1.5px var(--red)}
+.evt-row{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:var(--r-md);margin-bottom:8px;background:#F2EDE1;border:1px dashed var(--primary-mid);color:var(--sub);font-size:12.5px;cursor:pointer}
+.evt-row b{display:block;color:var(--text);font-weight:600;font-size:14px}
+
+.empty{text-align:center;padding:36px 20px;color:var(--sub);background:#fff;border:1px dashed var(--line);border-radius:var(--r-md)}
+.empty .big{color:var(--primary-mid);margin-bottom:10px;display:flex;justify-content:center}
+.empty b{display:block;color:var(--text);font-size:16px;margin-bottom:4px}
+.empty .btn-row{max-width:320px;margin:16px auto 0}
+
+.tray{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:12px;margin-bottom:12px}
+.tray-list{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tray-it{flex:none;max-width:220px;text-align:left;border:1px solid var(--line);border-left:3px solid var(--c);background:#fff;padding:8px 10px;border-radius:var(--r-sm);font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tray-it small{display:block;color:var(--sub);font-weight:500;font-family:var(--font-mono);font-size:11px;margin-top:2px}
+.link-btn{border:0;background:none;color:var(--primary);font-weight:700;font-size:13px;margin-top:10px;padding:2px;display:inline-flex;gap:5px;align-items:center}
+.link-btn.danger{color:var(--red)}
+
+/* Timeline Grid */
+.tl{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:12px 8px 12px 0}
+.tl-inner{position:relative}
+.hr{position:absolute;left:50px;right:0;border-top:1px solid var(--line)}
+.hr span{position:absolute;left:-44px;top:-8px;font-family:var(--font-mono);font-size:11px;color:var(--sub);font-weight:500}
+.blk{position:absolute;border-radius:var(--r-sm);padding:5px 8px;font-size:12px;overflow:hidden;background:color-mix(in srgb,var(--c) 15%,#fff);border:1px solid color-mix(in srgb,var(--c) 35%,#fff);border-left:3px solid var(--c);touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
+.blk b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.blk small{font-family:var(--font-mono);font-size:11px;color:var(--sub);font-weight:500}
+.blk.done{opacity:.55}
+.blk.conf{box-shadow:inset 0 0 0 1.5px var(--red)}
+.blk.drag{z-index:6;box-shadow:0 12px 28px rgba(24,36,34,.22);transform:scale(1.02);cursor:grabbing}
+.blk.evt{background:#F2EDE1;border:1px dashed var(--primary-mid);border-left:3px solid var(--primary);cursor:pointer}
+.now{position:absolute;left:50px;right:0;border-top:2px solid var(--red);z-index:4;pointer-events:none}
+.now::before{content:"";position:absolute;left:-5px;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--red)}
+
+.hint{font-size:12.5px;color:var(--sub);margin-top:8px;line-height:1.55;max-width:68ch}
+.center{text-align:center;margin-left:auto;margin-right:auto}
+
+/* Floating Action Button & Bottom Nav */
+.fab{position:fixed;right:max(16px,calc(50vw - 240px + 16px));bottom:calc(var(--nav-h) + var(--safe-b) + 16px);width:54px;height:54px;border-radius:14px;background:linear-gradient(145deg,var(--primary-bright),var(--primary));color:#fff;box-shadow:0 10px 24px rgba(14,140,125,.35);border:0;display:grid;place-items:center;z-index:30}
+.fab:active{transform:scale(.95)}
+.nav{position:fixed;bottom:calc(var(--safe-b) + 12px);left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;height:64px;background:rgba(255,255,255,.98);border-radius:22px;display:grid;grid-template-columns:repeat(4,1fr);box-shadow:0 12px 30px rgba(24,36,34,.16);border:1px solid var(--line);z-index:40}
+.nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;color:var(--sub);position:relative}
+.nav button.on{color:var(--primary)}
+
+/* AI Composer */
+.composer{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b));left:50%;transform:translateX(-50%);width:100%;max-width:480px;padding:10px 12px;background:rgba(242,247,247,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;gap:8px;align-items:flex-end;z-index:35;border-top:1px solid var(--line)}
+.composer textarea{flex:1;resize:none;border:1.5px solid var(--line);border-radius:var(--r-md);padding:10px 14px;font-size:15px;max-height:120px;outline:none;background:#fff;line-height:1.4}
+.composer textarea:focus{border-color:var(--primary)}
+.composer button{width:42px;height:42px;border-radius:var(--r-md);border:0;background:var(--primary);color:#fff;display:grid;place-items:center;flex:none}
+.composer button:disabled{opacity:.4}
+
+/* Bottom Sheet */
+.backdrop{position:fixed;inset:0;background:rgba(24,36,34,.42);opacity:0;pointer-events:none;transition:opacity .22s ease;z-index:50}
+.backdrop.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,105%);width:100%;max-width:480px;max-height:92dvh;overflow-y:auto;overscroll-behavior:contain;background:#fff;border-radius:20px 20px 0 0;padding:8px 18px calc(22px + var(--safe-b));z-index:60;transition:transform .28s cubic-bezier(.2,.8,.2,1);border-top:1px solid var(--line)}
+.sheet.on{transform:translate(-50%,0)}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:4px auto 12px}
+.sh-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px}
+.sh-head h3{font-size:18px;font-weight:700;color:var(--text)}
+label.f{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:600;color:var(--sub);margin:14px 0 6px}
+.mini{border:0;background:none;color:var(--primary);font-size:12px;font-weight:600}
+.in{width:100%;border:1.5px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;font-size:15px;background:#FAF8F2;outline:none;-webkit-appearance:none;appearance:none}
+.in:focus{border-color:var(--primary);background:#fff}
+textarea.in{resize:vertical;line-height:1.45}
+select.in{background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+.mono{font-family:var(--font-mono);font-size:13.5px}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick button{border:1.5px solid var(--line);background:#fff;border-radius:var(--r-sm);padding:6px 12px;font-size:13px;font-weight:600}
+.pick button.on{border-color:var(--c,var(--primary));background:color-mix(in srgb,var(--c,var(--primary)) 12%,#fff);color:var(--c,var(--primary))}
+.pick.sm{margin-top:8px}.pick.sm button{padding:5px 10px;font-size:12px;font-family:var(--font-mono)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dur{display:flex;align-items:center;gap:6px}
+.dur .in{padding:10px 6px;text-align:center;font-family:var(--font-mono)}
+.dur span{font-size:12.5px;color:var(--sub);flex:none}
+.btn{width:100%;border:0;border-radius:var(--r-md);padding:13px;font-size:15px;font-weight:600;background:var(--primary);color:#fff;display:flex;justify-content:center;align-items:center;gap:8px;text-decoration:none}
+.btn:active{opacity:.92}
+.btn:disabled{opacity:.55}
+.btn.ghost{background:var(--primary-soft);color:var(--primary);border:1px solid rgba(14,140,125,.18)}
+.btn.danger{background:#FDECEC;color:var(--red);border:1px solid rgba(217,56,58,.2)}
+.btn.sm{padding:9px;font-size:13.5px;border-radius:var(--r-sm)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn-row.three{grid-template-columns:1fr 1fr 1fr}
+.btn-row.three .btn{font-size:13px;padding:11px 6px}
+.sync-row{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--green);font-weight:600;margin-top:14px;background:#EAF4EC;padding:9px 12px;border-radius:var(--r-sm)}
+.sync-row .mini{margin-left:auto}
+.opt{width:100%;display:flex;gap:12px;align-items:center;padding:13px 14px;border-radius:var(--r-md);background:#FAF8F2;border:1px solid var(--line);margin-bottom:8px;text-align:left;font-size:14.5px;text-decoration:none;color:var(--text);cursor:pointer}
+.opt svg{color:var(--primary);flex:none}
+.opt b{display:block;font-weight:600}
+.opt small{display:block;color:var(--sub);font-size:12px;margin-top:2px;font-weight:400}
+.opt.danger,.opt.danger svg{color:var(--red);border-color:rgba(217,56,58,.25);background:#FFF8F8}
+.paste{border-radius:var(--r-md);padding:2px 0 8px}
+.paste.hl{background:var(--primary-soft);padding:6px 12px 12px;margin-bottom:8px}
+.prev{margin-top:14px;background:#FAF8F2;border:1px solid var(--line);border-radius:var(--r-md);padding:12px;font-size:13.5px}
+.prev-h{font-weight:700;margin-bottom:8px;color:var(--primary)}
+.prev-d{margin-bottom:8px}.prev-d small{color:var(--sub);font-family:var(--font-mono)}
+
+/* Month Grid */
+.mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.mgrid.head span{font-size:12px;color:var(--sub);font-weight:600;padding:4px 0}
+.mc{border:1px solid transparent;background:none;height:42px;border-radius:var(--r-sm);font-family:var(--font-display);font-size:14.5px;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.mc i{width:12px;height:3px;border-radius:2px}.mc i.has{background:#7FD3BE}.mc i.full{background:var(--green)}
+.mc.today{color:var(--primary);border-color:var(--primary)}
+.mc.sel{background:var(--primary);color:#fff}.mc.sel i.has{background:#fff}
+
+/* Overview */
+.hero{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center}
+.ring-w{position:relative;width:120px;height:120px}
+.ring-t{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-t b{font-family:var(--font-display);font-size:24px;font-weight:700;color:var(--primary)}
+.ring-t small{font-size:11.5px;color:var(--sub);font-weight:500}
+.stat{padding:6px 0;border-bottom:1px solid var(--line)}.stat:last-child{border:0}
+.stat b{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text)}
+.stat small{display:block;font-size:12px;color:var(--sub);font-weight:500}
+.card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+.card-h b{font-size:15px;font-weight:700}
+.legend{display:flex;gap:10px;font-size:11.5px;color:var(--sub);align-items:center}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+.chart{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;align-items:end}
+.bar{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;padding:0}
+.bar-track{position:relative;width:100%;height:110px;border-radius:4px;background:#F3EFE5}
+.bar-plan{position:absolute;left:0;right:0;bottom:0;border-radius:4px;overflow:hidden}
+.bar-fill{position:absolute;left:0;right:0;bottom:0;border-radius:4px}
+.bar-v{font-family:var(--font-mono);font-size:9.5px;color:var(--sub);font-weight:600;height:12px}
+.bar-d{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--sub);width:22px;height:22px;display:grid;place-items:center;border-radius:5px}
+.bar.sel .bar-d{background:var(--primary);color:#fff}
+.cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.cd{background:#fff;border:1px solid var(--line);border-top:3px solid var(--primary-mid);border-radius:var(--r-md);padding:13px 14px}
+.cd small{font-size:11.5px;color:var(--sub);font-weight:600;display:block}
+.cd b{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--primary);display:block;margin:4px 0 2px;letter-spacing:-.4px}
+.cd span{font-family:var(--font-mono);font-size:11px;color:var(--sub)}
+.sec-title{font-size:16px;font-weight:700;margin:20px 2px 10px;color:var(--text)}
+details.phase{background:#fff;border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:8px;overflow:hidden}
+details.phase summary{list-style:none;padding:14px 16px;cursor:pointer}
+details.phase summary::-webkit-details-marker{display:none}
+details.phase.cur{border:1.5px solid var(--primary);background:#FAF8F3}
+.ph-badge{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--sub)}
+.cur .ph-badge{color:var(--primary)}
+.ph-title{font-size:15px;font-weight:700;margin:3px 0;color:var(--text)}
+.ph-date{font-family:var(--font-mono);font-size:11.5px;color:var(--sub);font-weight:500}
+.ph-body{padding:0 16px 14px;font-size:13.5px;line-height:1.65;color:var(--text);border-top:1px solid var(--line);padding-top:12px}
+.milestone{display:inline-flex;align-items:center;gap:6px;margin-top:10px;background:var(--primary-soft);color:var(--primary);font-weight:600;font-size:12.5px;padding:6px 10px;border-radius:var(--r-sm)}
+.ph-prog{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;color:var(--sub);font-weight:500;margin-top:8px}
+
+/* AI Coach */
+.ai-pad{padding-bottom:96px}
+.ctx{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;color:var(--sub);background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 12px;margin-bottom:12px}
+.model-tag{margin-left:auto;font-family:var(--font-mono);background:var(--primary-soft);color:var(--primary);border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600}
+.msgs{display:flex;flex-direction:column}
+.msg{max-width:86%;padding:10px 14px;border-radius:14px;font-size:14.5px;line-height:1.55;margin:4px 0;white-space:pre-wrap;word-wrap:break-word}
+.msg.me{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.err{background:#FDECEC;color:var(--red);border-color:rgba(217,56,58,.25)}
+.typing{display:flex;gap:4px;padding:14px 16px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--primary-mid);animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.prop{margin-top:10px;background:#FAF8F2;border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;white-space:normal}
+.prop-h{font-size:12px;font-weight:700;color:var(--primary);margin-bottom:4px}
+.prop ul{list-style:none;margin-top:6px;font-size:13px}
+.prop li{padding:5px 0;border-bottom:1px dashed var(--line)}
+.prop li small{color:var(--sub);font-family:var(--font-mono)}
+.applied{margin-top:8px;color:var(--green);font-weight:600;font-size:13px}
+.welcome{text-align:center;padding:28px 16px 12px;color:var(--sub);font-size:13.5px;line-height:1.6;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);margin-bottom:10px}
+.welcome .big{color:var(--primary);margin-bottom:8px;display:flex;justify-content:center}
+.welcome b{display:block;color:var(--text);font-size:16px;margin-bottom:4px}
+.qp{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.qp button{border:1px solid var(--line);background:#fff;border-radius:var(--r-sm);padding:7px 11px;font-size:12.5px;font-weight:600;color:var(--text)}
+.qp button:active{background:var(--primary-soft);border-color:var(--primary)}
+.set-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;margin-bottom:4px;color:var(--text)}
+.set-title svg{color:var(--primary)}
+.row{display:flex;gap:8px;align-items:center}
+code{font-family:var(--font-mono);background:#F3EFE5;color:var(--primary);padding:2px 6px;border-radius:4px;font-size:12px}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--safe-b) + 84px);transform:translate(-50%,20px);background:var(--text);color:#fff;padding:11px 14px 11px 16px;border-radius:var(--r-md);font-size:13.5px;display:flex;gap:14px;align-items:center;opacity:0;pointer-events:none;transition:.22s ease;z-index:70;max-width:calc(100% - 32px);box-shadow:0 10px 28px rgba(24,36,34,.28)}
+.toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{background:none;border:0;color:var(--primary-bright);font-weight:700;font-size:13.5px;padding:2px 4px}
+.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="mascotGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5FD0BB"/><stop offset="100%" stop-color="#0E8C7D"/></linearGradient></defs></svg>
+<div class="app">
+  <section class="view on" id="v-today">
+    <header class="top">
+      <div class="top-row">
+        <button class="month-btn" id="monthBtn"><span id="monthLbl"></span><span id="monthIc"></span></button>
+        <div class="top-actions">
+          <button class="pill-btn" id="todayBtn">วันนี้</button>
+          <button class="icon-btn" id="prevW" aria-label="สัปดาห์ก่อน"></button>
+          <button class="icon-btn" id="nextW" aria-label="สัปดาห์ถัดไป"></button>
+        </div>
+      </div>
+      <div class="week" id="week"></div>
+    </header>
+    <div class="wrap"><div class="card day-card" id="dayCard"></div></div>
+    <div class="wrap"><div class="card ring-card" id="ringCard"></div></div>
+    <div class="wrap"><button class="ask-bar" id="askBar"></button></div>
+    <div class="chips" id="dayActions"></div>
+    <div class="toolbar">
+      <div class="seg" id="viewSeg"></div>
+      <div class="seg sm" id="filterSeg">
+        <button data-f="all" class="on">ทั้งหมด</button><button data-f="main">หลัก</button><button data-f="extra">เสริม</button>
+      </div>
+    </div>
+    <div id="taskArea"></div>
+  </section>
+  <section class="view" id="v-overview">
+    <header class="top simple"><h1>ภาพรวม</h1></header>
+    <div class="wrap" id="ovBody"></div>
+  </section>
+  <section class="view" id="v-ai">
+    <header class="top simple"><h1 style="display:flex;align-items:center;gap:8px"><svg width="26" height="26" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="16" fill="url(#mascotGrad)"/><ellipse cx="17" cy="19.5" rx="9.5" ry="4" fill="#fff"/><circle cx="12.3" cy="19.5" r="2.3" fill="#0E8C7D"/><circle cx="21.7" cy="19.5" r="2.3" fill="#0E8C7D"/></svg>โค้ช AI</h1><button class="pill-btn" id="clearChat">ล้างแชต</button></header>
+    <div class="wrap ai-pad" id="aiBody"></div>
+  </section>
+  <section class="view" id="v-settings">
+    <header class="top simple"><h1>ตั้งค่า</h1></header>
+    <div class="wrap" id="setBody"></div>
+  </section>
+</div>
+<button class="fab" id="fab" aria-label="เพิ่มงาน"></button>
+<div class="composer" id="composer" style="display:none">
+  <textarea id="chatIn" rows="1" placeholder="ถามโค้ช หรือสั่งปรับแผน…"></textarea>
+  <button id="sendBtn" aria-label="ส่ง"></button>
+</div>
+<nav class="nav" id="nav"></nav>
+<div class="backdrop" id="bd"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastUndo">เลิกทำ</button></div>
+<script>/* ================= CONFIG ================= */
+const LS={plan:'kyoto_plan_v13',old:'kyoto_ai_plan_v12',key:'kyoto_gemini_api_key',model:'kyoto_gemini_model',models:'kyoto_gemini_models',cal:'kyoto_cal_v2',oldCal:'kyoto_ai_cal_v1',wait:'kyoto_cal_wait',chat:'kyoto_chat_v1',timer:'kyoto_timer_v1'};
+const FOCUS_SHORTCUT='Focus Opal';
+const CATS=['IELTS','Research','ADB','Deliverable','Proposal','Sport & Life','อื่นๆ'];
+const CC={'IELTS':'#0E8C7D','Research':'#159C8A','ADB':'#D97706','Deliverable':'#0D9488','Proposal':'#2B6CB0','Sport & Life':'#38A169','อื่นๆ':'#5A7678'};
+const MODELS=['gemini-2.5-flash','gemini-2.5-pro','gemini-2.0-flash','gemini-1.5-flash'];
+const SHEET='https://docs.google.com/spreadsheets/d/1CAE2pm-3C9PtKZjdAtdE9MmppCl4eUvkoLZz85F1Nls/edit';
+const HH=56;
+const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TH_MF=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_D=['อา','จ','อ','พ','พฤ','ศ','ส'];
+const TH_DF=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+/* ================= SEED DATA ================= */
+const SEED={
+'20261014':['Day 1: ปูพื้นฐานเข้มข้น 6 ชม.','ทำ Cambridge 16 Test 1 (L&R) บันทึก Error Log และสำรวจ 3 แล็บวิจัย Urban Management',[
+ ['t14_1','IELTS','ทำ Diagnostic Test 1 (Cambridge 16 Test 1 L&R)','08:00',2,0],
+ ['t14_2','IELTS','ตรวจเฉลย บันทึก Error Log และจดคำศัพท์ใหม่','10:15',1,30],
+ ['t14_3','Proposal','สำรวจ 3 แล็บวิจัย Dept. of Urban Management ม.เกียวโต','13:30',1,30],
+ ['t14_4','Proposal','คัดเลือกเปเปอร์ของอาจารย์เป้าหมาย 3 ฉบับ','15:15',1,0]],
+ [['ext_14_1','Sport & Life','วิ่งออกกำลังกายเช้า','06:30',0,40]]],
+'20261015':['Day 2: IELTS Listening & เปเปอร์อาจารย์','เจาะลึกเทคนิคการฟัง Section 1-2 พร้อมอ่าน Abstract เปเปอร์อาจารย์ 3 ฉบับ',[
+ ['t15_1','IELTS','เจาะลึก Listening Section 1-2 (ตัวเลข/การสะกด/แผนที่)','08:00',2,0],
+ ['t15_2','IELTS','ทบทวนคำศัพท์ Academic Word List 30 คำ','10:15',1,30],
+ ['t15_3','Proposal','อ่านและสรุป Abstract เปเปอร์อาจารย์ ม.เกียวโต 3 ฉบับ','13:30',2,30]]],
+'20261016':['Day 3: Reading T/F/NG & กรอบทุน ADB','ตะลุยโจทย์ T/F/NG 4 บทความ และศึกษาเสาหลัก ADB Strategy 2030',[
+ ['t16_1','IELTS','ฝึกทำโจทย์ Reading T/F/NG 4 บทความ จับเวลา 18 นาที/ชุด','08:30',3,30],
+ ['t16_2','Proposal','ศึกษาเสาหลัก ADB Strategy 2030 ด้าน Sustainable Transport','13:30',2,30]]],
+'20261017':['Day 4: Writing Task 1 & ร่างปัญหาเมือง','ปูพื้นฐานกราฟเส้นและแท่ง และเริ่มร่าง Problem Statement หน้าแรก',[
+ ['t17_1','IELTS','ปูพื้นฐาน Writing Task 1: กราฟเส้นและแท่ง (Overview)','09:00',3,30],
+ ['t17_2','Proposal','ร่าง Problem Statement หน้าที่ 1 ปัญหาการพัฒนาเมือง','14:00',2,30]]],
+'20261018':['Day 5: Speaking Part 1 & Literature Matrix','อัดเสียงซ้อมพูดและสร้างตารางเปรียบเทียบวรรณกรรม 5 ฉบับ',[
+ ['t18_1','IELTS','ฝึกพูด Speaking Part 1 + ท่องศัพท์ Urban Topical 50 คำ','09:00',3,30],
+ ['t18_2','Proposal','สร้าง Literature Matrix ตารางเปรียบเทียบงานวิจัย 5 ฉบับ','14:00',2,30]]],
+'20261019':['Day 6: Weekly Mock Sprint & สรุปสัปดาห์ที่ 1','ทำข้อสอบจำลองรวม และสรุปโครงร่างวิจัย 1 หน้า',[
+ ['t19_1','IELTS','Weekly Mock Sprint ทำรวม L+R จับเวลาเข้มข้น','08:30',3,30],
+ ['t19_2','Deliverable','รวบรวมประเด็นสัปดาห์ที่ 1 และสรุปหัวข้อวิจัย 1 หน้า','13:30',2,30]]],
+'20261020':['Day 7: Listening Section 3 & Research Gap','ฝึกฟังบทสนทนาวิชาการ Section 3 และสกัด Research Gap จากเปเปอร์',[
+ ['t20_1','IELTS','ฝึกโจทย์ Listening Section 3 (Multiple Choice & Matching)','08:30',3,30],
+ ['t20_2','Proposal','วิเคราะห์ Research Gap ของงานวิจัยในกรุงเทพฯ/อาเซียน','13:30',2,30]]],
+'20261021':['Day 8: Reading Matching & วัตถุประสงค์วิจัย','จับใจความสำคัญระดับย่อหน้า และตั้ง Research Questions 3 ข้อ',[
+ ['t21_1','IELTS','ตะลุยโจทย์ Reading: Matching Headings 5 บทความ','08:30',3,30],
+ ['t21_2','Proposal','ร่าง Research Objectives & Research Questions 3 ข้อ','13:30',2,30]]],
+'20261022':['Day 9: Writing Task 2 & Methodology','ฝึกวางโครงสร้างเรียงความ 250 คำ และเลือกวิธีวิจัยเชิงปริมาณ/คุณภาพ',[
+ ['t22_1','IELTS','ฝึกเขียน Writing Task 2 (Opinion & Discussion Essay)','08:30',3,30],
+ ['t22_2','Proposal','วางกรอบ Research Methodology และพื้นที่ศึกษา (Case Study)','13:30',2,30]]],
+'20261023':['Day 10: Speaking Part 2 & ข้อมูลวิจัย','ซ้อมพูด 2 นาทีต่อเนื่อง และสำรวจแหล่งข้อมูลเปิดด้านผังเมือง/ขนส่ง',[
+ ['t23_1','IELTS','ซ้อมพูด Speaking Part 2 (Cue Card 10 หัวข้อ) จับเวลา 2 นาที','08:30',3,30],
+ ['t23_2','Proposal','สำรวจชุดข้อมูล GIS / Urban Data ที่ใช้ในงานวิจัย','13:30',2,30]]],
+'20261024':['Day 11: Cambridge 16 Test 2 Full L&R','จำลองสอบ Listening + Reading ชุดที่ 2 และวิเคราะห์ข้อผิดพลาด',[
+ ['t24_1','IELTS','ทำข้อสอบ Cambridge 16 Test 2 (L&R) จับเวลาจริง','09:00',3,30],
+ ['t24_2','Proposal','เชื่อมโยงผลลัพธ์งานวิจัยเข้ากับเกณฑ์ทุน ADB-JSP','14:00',2,30]]],
+'20261025':['Day 12: Writing Process/Map & วรรณกรรม','ฝึกเขียนอธิบายแผนที่การเปลี่ยนแปลงเมือง และเรียบเรียง Literature Review',[
+ ['t25_1','IELTS','ฝึกเขียน Writing Task 1: Map & Process Diagram','09:00',3,30],
+ ['t25_2','Proposal','เขียนสรุป Literature Review 2 หน้ากระดาษ','14:00',2,30]]]
+};
+const PHASES=[
+ {n:1,s:'2026-10-14',e:'2026-10-31',d:'14 – 31 ต.ค. 2026',t:'ปูพื้นฐานเข้มข้น (Foundation Sprint)',b:['ทำ Cambridge 16 Test 1–4 (L&R) พร้อมบันทึก Error Log','สำรวจแล็บ Dept. of Urban Management และอ่านเปเปอร์ 5–10 ฉบับ','ร่าง Problem Statement 1–2 หน้า ด้าน Urban Mobility / Resilience'],m:'รู้จุดอ่อน IELTS + ได้ Proposal Brief 1 หน้า'},
+ {n:2,s:'2026-11-01',e:'2026-11-30',d:'1 – 30 พ.ย. 2026',t:'เจาะลึกโจทย์ & ร่าง Proposal ฉบับแรก',b:['ฝึกเขียน IELTS Writing Task 1 และ Task 2','ซ้อมพูด Speaking Part 1–3 อัดเสียงเช็ก Fluency','เขียน Research Proposal Draft แรกครบทุกบท'],m:'ซ้อมสอบแตะ 6.0 + Proposal ร่างแรก 5–6 หน้า'},
+ {n:3,s:'2026-12-01',e:'2027-01-31',d:'ธ.ค. 2026 – ม.ค. 2027',t:'สอบจริง IELTS & สรุปรูปเล่มวิจัย',b:['ทำ Full Mock Test ครบ 4 ทักษะภายใต้เวลาจริง','สอบ IELTS Official Test ช่วงปลาย ธ.ค. 2026','Proofread เล่ม Research Proposal ฉบับสมบูรณ์พร้อม CV'],m:'ได้ใบคะแนน IELTS 6.0–6.5'},
+ {n:4,s:'2027-02-01',e:'2027-05-20',d:'ก.พ. – พ.ค. 2027',t:'ยื่นตรวจ AAO & ติดต่ออาจารย์ที่ปรึกษา',b:['เตรียม Transcript, ใบปริญญา, IELTS และ Proposal ยื่นระบบ AAO','ส่งอีเมลติดต่ออาจารย์ที่ปรึกษาเป้าหมายเพื่อสัมภาษณ์เบื้องต้น','ขอ Letter of Provisional Acceptance และจดหมายรับรอง'],m:'ได้รับการตอบรับจากอาจารย์ที่ปรึกษา'},
+ {n:5,s:'2027-05-21',e:'2027-06-30',d:'ปลาย พ.ค. – มิ.ย. 2027',t:'ยื่นใบสมัครทางการ + ขอทุน ADB-JSP',b:['กรอกใบสมัครออนไลน์ Graduate School of Engineering','แนบเอกสารทุน ADB-JSP และหนังสือรับรองการทำงาน','ส่งเอกสารตัวจริงทางไปรษณีย์ด่วนทันเดดไลน์ มิ.ย. 2027'],m:'ยื่นชุดเอกสารเข้าเรียนและขอทุนสำเร็จ'},
+ {n:6,s:'2027-07-01',e:'2027-12-31',d:'ก.ค. – พ.ย. 2027',t:'สอบสัมภาษณ์ & ประกาศผลทุน',b:['ซ้อมนำเสนอสไลด์ Research Proposal และเก็งคำถาม','สอบสัมภาษณ์ออนไลน์กับคณะกรรมการภาควิชา Urban Management','รับหนังสือแจ้งผลจาก Kyoto University และทุน ADB-JSP'],m:'ได้รับทุนเต็มจำนวน ADB-JSP'},
+ {n:7,s:'2028-01-01',e:'2028-04-30',d:'ม.ค. – เม.ย. 2028',t:'ขอวีซ่า & บินไปเรียนที่เกียวโต',b:['รับเอกสาร COE และยื่นขอวีซ่านักเรียนญี่ปุ่น','จองหอพักและรับตั๋วเครื่องบินจาก ADB','เดินทางถึงเกียวโต เปิดเทอม April 2028 Intake'],m:'เปิดเทอมปริญญาโท ม.เกียวโต (เม.ย. 2028)'}
+];
+const COUNTDOWNS=[
+ {l:'จบ SPRINT',d:'2026-10-31',sub:'31 ต.ค. 2026'},
+ {l:'สอบ IELTS 6.5',d:'2026-12-26',sub:'ปลาย ธ.ค. 2026'},
+ {l:'ยื่นทุน ADB-JSP',d:'2027-05-20',sub:'พ.ค. – มิ.ย. 2027'},
+ {l:'เปิดเทอม ม.เกียวโต',d:'2028-04-01',sub:'เม.ย. 2028'}
+];
+const QP=[
+ ['เพิ่มความเข้มข้น','เพิ่มความเข้มข้นของแผนวันนี้ ให้ท้าทายขึ้นแต่ยังทำได้จริง'],
+ ['โฟกัส IELTS','ปรับแผนวันนี้ให้โฟกัส IELTS มากขึ้น โดยยังไม่ทิ้งงาน Proposal'],
+ ['แตกงานย่อย 25–50 นาที','แตกงานใหญ่ของวันนี้เป็นงานย่อยแบบ Agile ช่วงละ 25–50 นาที พร้อมเวลาพัก'],
+ ['ลดภาระงานวันนี้','วันนี้เหนื่อย ช่วยปรับแผนให้เบาลงแต่ยังรักษาเป้าหมายหลัก'],
+ ['จัดหลบนัดในปฏิทิน','จัดแผนวันนี้ใหม่ไม่ให้ชนกับนัดในปฏิทิน'],
+ ['สรุปภาพรวมสัปดาห์','สรุปความคืบหน้าและสิ่งที่ควรโฟกัสสัปดาห์นี้']
+];
+
+/* ================= ICONS ================= */
+const P={
+  plus:'<path d="M12 4v16M4 12h16"/>',
+  cal:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18M8 13h3v3H8z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  clock:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7v5l3.5 2"/>',
+  zap:'<path d="M4 7h10M4 12h16M4 17h7M17 5l3 2-3 2M14 15l3 2-3 2"/>',
+  arrow:'<path d="M4 12h15M14 6l6 6-6 6M4 6v12"/>',
+  upload:'<path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M16 7l-4-4-4 4M12 3v12"/>',
+  download:'<path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M8 11l4 4 4-4M12 15V3"/>',
+  home:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M9 9v12"/>',
+  chart:'<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>',
+  gear:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9M13 4v6M7 14v6"/>',
+  trash:'<path d="M4 6h16M9 6V4h6v2M6 6l1 14h10l1-14M10 10v6M14 10v6"/>',
+  alert:'<path d="M12 3 2.5 19.5h19L12 3zM12 9v4.5M12 16.5h.01"/>',
+  list:'<rect x="3" y="5" width="3" height="3" rx=".5"/><path d="M9 6.5h12"/><rect x="3" y="10.5" width="3" height="3" rx=".5"/><path d="M9 12h12"/><rect x="3" y="16" width="3" height="3" rx=".5"/><path d="M9 17.5h12"/>',
+  send:'<path d="M3 11.5 21 3l-8.5 18-2.5-7-7-2.5zM21 3 10 14"/>',
+  chevL:'<path d="M14.5 18 8.5 12l6-6"/>',
+  chevR:'<path d="M9.5 18 15.5 12l-6-6"/>',
+  chevD:'<path d="M6.5 9.5 12 15l5.5-5.5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  sparkle:'<path d="M12 2.5 14.4 9.6 21.5 12l-7.1 2.4L12 21.5l-2.4-7.1L2.5 12l7.1-2.4L12 2.5z"/>',
+  coach:'<circle cx="12" cy="12" r="9"/><circle cx="9" cy="13" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.1" fill="currentColor" stroke="none"/><path d="M8.3 16.2c1.1.9 2.4 1.3 3.7 1.3s2.6-.4 3.7-1.3"/>',
+  edit:'<path d="M13 20h8M16.5 3.5l4 4L8 20H4v-4L16.5 3.5z"/>',
+  note:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  ext:'<path d="M14 4h6v6M20 4l-9 9M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6"/>',
+  eye:'<path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  undo:'<path d="M4 8v5h5"/><path d="M4 13a8 8 0 1 1 2.3 5.6"/>',
+  target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>',
+  play:'<path d="M7 4.5v15l13-7.5z" fill="currentColor" stroke="none"/>',
+  stop:'<rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" stroke="none"/>'
+};
+const I=(n,s=18,w=2)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]}</svg>`;
+const mascot=(s=28)=>`<svg class="mascot-ic" width="${s}" height="${s}" viewBox="0 0 34 34" fill="none"><circle cx="17" cy="17" r="16" fill="url(#mascotGrad)"/><ellipse cx="17" cy="19.5" rx="9.5" ry="4" fill="#fff"/><circle cx="12.3" cy="19.5" r="2.3" fill="#0E8C7D"/><circle cx="21.7" cy="19.5" r="2.3" fill="#0E8C7D"/></svg>`;
+const ringSvg=(pct,c,size=64,sw=7)=>{const r=(size-sw)/2,cx=size/2,cy=size/2,circ=2*Math.PI*r,off=circ-(Math.min(pct,100)/100)*circ;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${sw}"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg>`};
+
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const uid=()=>Math.random().toString(36).slice(2,10);
+const keyOf=d=>'d_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
+const dateOf=k=>new Date(+k.slice(2,6),+k.slice(6,8)-1,+k.slice(8,10));
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseISO=s=>{if(!s)return null;const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const today0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const same=(a,b)=>a.getTime()===b.getTime();
+const toMin=t=>{if(!t)return null;const[h,m]=String(t).split(':').map(Number);return h*60+(m||0)};
+const fromMin=m=>pad(Math.floor(m/60)%24)+':'+pad(Math.round(m%60));
+const dur=t=>(+t.durH||0)*60+(+t.durM||0);
+const fmtDur=m=>{if(!m)return '—';const h=Math.floor(m/60),mm=m%60;return (h?h+' ชม.':'')+(h&&mm?' ':'')+(mm?mm+' น.':'')};
+const fmtElapsed=ms=>{const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`:`${m}:${String(sec).padStart(2,'0')}`};
+function tickTimer(){if(!TIMER)return;const el=$('.tmr-time');if(el)el.textContent=fmtElapsed(Date.now()-TIMER.start)}
+function ensureTick(){if(timerIv)return;timerIv=setInterval(tickTimer,1000)}
+function stopTick(){if(!timerIv)return;clearInterval(timerIv);timerIv=null}
+function startTimer(k,id){
+  if(TIMER)stopTimer();
+  TIMER={k,id,start:Date.now()};
+  saveTimer();
+  ensureTick();
+  renderToday();
+  location.href=`shortcuts://run-shortcut?name=${encodeURIComponent(FOCUS_SHORTCUT)}`;
+}
+function stopTimer(){
+  if(!TIMER)return;
+  const {k,id,start}=TIMER,d=day(k),t=d.tasks.find(x=>x.id===id),sec=Math.max(0,Math.round((Date.now()-start)/1000));
+  if(t){t.logSec=(t.logSec||0)+sec;save()}
+  TIMER=null;saveTimer();stopTick();
+  renderToday();
+}
+function timerAction(id){const k=keyOf(cur);if(TIMER&&TIMER.id===id)stopTimer();else startTimer(k,id)}
+const short=d=>`${TH_D[d.getDay()]}. ${d.getDate()} ${TH_M[d.getMonth()]}`;
+const dShort=k=>{const d=dateOf(k);return `${d.getDate()} ${TH_M[d.getMonth()]}`};
+const fullLbl=d=>`${TH_DF[d.getDay()]} ${d.getDate()} ${TH_M[d.getMonth()]} ${d.getFullYear()}`;
+const nowMin=()=>{const n=new Date();return n.getHours()*60+n.getMinutes()};
+const color=c=>CC[c]||'#8E8CA3';
+const haptic=()=>navigator.vibrate?.(8);
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const normK=v=>{if(!v)return null;v=String(v);if(/^d_\d{8}$/.test(v))return v;const m=v.match(/(\d{4})-?(\d{2})-?(\d{2})/);return m?`d_${m[1]}${m[2]}${m[3]}`:null};
+function dl(text,name,type){
+  const url=URL.createObjectURL(new Blob([text],{type}));
+  const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+
+/* ================= STATE ================= */
+let S=null,CAL={},CHAT=[],UNDO=null,TIMER=null,timerIv=null;
+let cur=today0(),tab='today',view='list',filter='all',BUSY=false,DRAG=false;
+
+function normTask(o,extra){
+  let text=String(o.text||o.title||'').trim(),cat=o.cat||'';
+  const m=text.match(/^\s*\[([^\]]+)\]\s*/);
+  if(m){cat=cat||m[1];text=text.slice(m[0].length)}
+  let h=Math.max(0,+o.durH||0),mm=Math.max(0,+o.durM||0);h+=Math.floor(mm/60);mm%=60;
+  return {id:o.id||uid(),text,cat:cat||'อื่นๆ',time:/^\d{1,2}:\d{2}$/.test(o.time||'')?o.time.padStart(5,'0'):'',durH:h,durM:mm,done:!!o.done,note:o.note||'',extra:o.extra??extra,appleSynced:!!o.appleSynced,rolledFrom:normK(o.rolledFrom)||''};
+}
+function seedDays(){
+  const days={};
+  for(const [k,[hd,bd,tasks,extras=[]]] of Object.entries(SEED)){
+    const mk=(a,ex)=>({id:a[0],cat:a[1],text:a[2],time:a[3],durH:a[4],durM:a[5],done:false,note:'',extra:ex,appleSynced:false,rolledFrom:''});
+    days['d_'+k]={head:hd,body:bd,tasks:[...tasks.map(a=>mk(a,false)),...extras.map(a=>mk(a,true))]};
+  }
+  return days;
+}
+function migrate(src){
+  const days={};
+  src=src?.userSchedule||src?.days||src;
+  if(!src||typeof src!=='object')return null;
+  for(const k in src){
+    if(!/^d_\d{8}$/.test(k))continue;
+    const v=src[k]||{};
+    days[k]={head:v.head||'',body:v.body||'',tasks:[...(v.tasks||[]).map(x=>normTask(x,!!x.extra)),...(v.extraTasks||[]).map(x=>normTask(x,true))]};
+  }
+  return Object.keys(days).length?{days}:null;
+}
+function migrateCal(raw){
+  const out={};
+  const put=(k,e)=>{
+    if(!e||typeof e!=='object')return;
+    const st=String(e.start||e.s||''),en=String(e.end||e.e||'');
+    if(!/^\d{1,2}:\d{2}/.test(st))return;
+    k=normK(k)||normK(e.d||e.date);if(!k)return;
+    const s5=st.slice(0,5).replace(/^(\d):/,'0$1:');
+    const e5=/^\d{1,2}:\d{2}/.test(en)?en.slice(0,5).replace(/^(\d):/,'0$1:'):fromMin(Math.min(toMin(s5)+60,1439));
+    (out[k]=out[k]||[]).push({title:String(e.title||e.t||'นัดหมาย'),start:s5,end:e5});
+  };
+  if(Array.isArray(raw))raw.forEach(e=>put(null,e));
+  else if(raw&&typeof raw==='object')for(const k in raw)(Array.isArray(raw[k])?raw[k]:[]).forEach(e=>put(k,e));
+  return out;
+}
+function load(){
+  try{S=JSON.parse(localStorage.getItem(LS.plan))}catch{S=null}
+  if(!S?.days){try{S=migrate(JSON.parse(localStorage.getItem(LS.old)))}catch{S=null}}
+  if(!S?.days)S={days:seedDays()};
+  try{CAL=JSON.parse(localStorage.getItem(LS.cal))}catch{CAL=null}
+  if(!CAL||typeof CAL!=='object'||Array.isArray(CAL)){let old=null;try{old=JSON.parse(localStorage.getItem(LS.oldCal))}catch{}CAL=migrateCal(old)}
+  try{CHAT=JSON.parse(localStorage.getItem(LS.chat))||[]}catch{CHAT=[]}
+  try{TIMER=JSON.parse(localStorage.getItem(LS.timer))}catch{TIMER=null}
+  save();saveCal();
+}
+const save=()=>localStorage.setItem(LS.plan,JSON.stringify(S));
+const saveCal=()=>localStorage.setItem(LS.cal,JSON.stringify(CAL));
+const saveTimer=()=>TIMER?localStorage.setItem(LS.timer,JSON.stringify(TIMER)):localStorage.removeItem(LS.timer);
+const saveChat=()=>{CHAT=CHAT.slice(-40);localStorage.setItem(LS.chat,JSON.stringify(CHAT))};
+const day=k=>S.days[k]||{head:'',body:'',tasks:[]};
+const ensureDay=k=>S.days[k]||(S.days[k]={head:'',body:'',tasks:[]});
+const findTask=(k,id)=>day(k).tasks.find(t=>t.id===id);
+const firstKey=()=>Object.keys(S.days).filter(k=>S.days[k].tasks.length).sort()[0];
+const snapshot=()=>{UNDO=JSON.stringify({S,CAL})};
+function undo(){if(!UNDO)return;const u=JSON.parse(UNDO);S=u.S;CAL=u.CAL;UNDO=null;save();saveCal();$('#toast').classList.remove('on');refresh();setTimeout(()=>toast('เลิกทำแล้ว'),250)}
+const getModels=()=>{try{const a=JSON.parse(localStorage.getItem(LS.models));if(Array.isArray(a)&&a.length)return a}catch{}return MODELS};
+const getModel=()=>localStorage.getItem(LS.model)||getModels()[0];
+const phaseOf=d=>PHASES.find(p=>d>=parseISO(p.s)&&d<=parseISO(p.e));
+
+/* ================= UI PRIMITIVES ================= */
+let tT;
+function toast(msg,undoable){
+  $('#toastMsg').textContent=msg;
+  $('#toastUndo').style.display=undoable?'':'none';
+  $('#toast').classList.add('on');
+  clearTimeout(tT);tT=setTimeout(()=>$('#toast').classList.remove('on'),undoable?5000:2200);
+}
+function sheet(html){const s=$('#sheet');s.innerHTML='<div class="grab"></div>'+html;s.scrollTop=0;s.classList.add('on');$('#bd').classList.add('on')}
+function closeSheet(){$('#sheet').classList.remove('on');$('#bd').classList.remove('on')}
+const head=title=>`<div class="sh-head"><h3>${title}</h3><button class="icon-btn" data-close>${I('x',16)}</button></div>`;
+function confirmSheet(title,msg,okLabel,fn,danger){
+  sheet(`${head(title)}<p class="hint" style="font-size:14.5px">${msg}</p><div class="btn-row"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn ${danger?'danger':''}" id="cfOk">${okLabel}</button></div>`);
+  $('#cfOk').onclick=()=>{closeSheet();fn()};
+}
+function refresh(){({today:renderToday,overview:renderOverview,ai:renderAI,settings:renderSettings})[tab]()}
+
+/* ================= TODAY ================= */
+function conflicts(k){
+  const d=day(k),set=new Set();
+  const iv=d.tasks.filter(t=>t.time).map(t=>({id:t.id,s:toMin(t.time),e:toMin(t.time)+Math.max(dur(t),15)}));
+  const ev=(CAL[k]||[]).map(e=>({s:toMin(e.start),e:toMin(e.end)}));
+  iv.forEach((a,i)=>{
+    iv.slice(i+1).forEach(b=>{if(a.s<b.e&&b.s<a.e){set.add(a.id);set.add(b.id)}});
+    ev.forEach(b=>{if(a.s<b.e&&b.s<a.e)set.add(a.id)});
+  });
+  return set;
+}
+const passFilter=t=>filter==='all'||(filter==='extra')===!!t.extra;
+
+function renderToday(){
+  const k=keyOf(cur),d=day(k),T=today0(),isToday=same(cur,T);
+  $('#monthLbl').textContent=`${TH_MF[cur.getMonth()]} ${cur.getFullYear()}`;
+  $('#todayBtn').style.visibility=isToday?'hidden':'visible';
+  const mon=addDays(cur,-((cur.getDay()+6)%7));
+  let w='';
+  for(let i=0;i<7;i++){
+    const dd=addDays(mon,i),ts=day(keyOf(dd)).tasks;
+    const st=ts.length?(ts.every(t=>t.done)?'full':'has'):'';
+    w+=`<button class="wd ${same(dd,cur)?'sel':''} ${same(dd,T)?'today':''}" data-k="${keyOf(dd)}"><span>${TH_D[dd.getDay()]}</span><b>${dd.getDate()}</b><i class="${st}"></i></button>`;
+  }
+  $('#week').innerHTML=w;
+  const n=d.tasks.length,done=d.tasks.filter(t=>t.done).length,pct=n?Math.round(done/n*100):0;
+  const planned=d.tasks.reduce((a,t)=>a+dur(t),0),ph=phaseOf(cur);
+  const mainT=d.tasks.filter(t=>!t.extra),mainPct=mainT.length?Math.round(mainT.filter(t=>t.done).length/mainT.length*100):0;
+  const extraT=d.tasks.filter(t=>t.extra),extraPct=extraT.length?Math.round(extraT.filter(t=>t.done).length/extraT.length*100):0;
+  $('#dayCard').innerHTML=`
+    <div class="dc-top"><span>${fullLbl(cur)}${isToday?' · วันนี้':''}</span>${ph?`<span class="dc-phase">Phase ${ph.n}</span>`:''}</div>
+    <div class="dc-head ${d.head?'':'muted'}">${esc(d.head||'แตะเพื่อตั้งหัวข้อของวันนี้')}</div>
+    ${d.body?`<div class="dc-body">${esc(d.body)}</div>`:''}
+    <div class="dc-prog"><span>${done}/${n} งาน · ${fmtDur(planned)}</span></div>
+    <span class="dc-edit">${I('edit',15)}</span>`;
+  $('#ringCard').innerHTML=[['รวมวันนี้',pct,'var(--ring-a)'],['งานหลัก',mainPct,'var(--ring-b)'],['งานเสริม',extraPct,'var(--ring-c)']]
+    .map(([l,p,c])=>`<div class="ring-item"><div class="ring">${ringSvg(p,c)}<span class="ring-val">${p}%</span></div><span class="ring-lbl">${l}</span></div>`).join('');
+  $('#askBar').innerHTML=`${mascot(30)}<span>ถามโค้ชอะไรก็ได้…</span>`;
+  $('#viewSeg').innerHTML=`<button data-v="list" class="${view==='list'?'on':''}">${I('list',15)} รายการ</button><button data-v="grid" class="${view==='grid'?'on':''}">${I('clock',15)} ไทม์ไลน์</button>`;
+  $$('#filterSeg button').forEach(b=>b.classList.toggle('on',b.dataset.f===filter));
+  const list=d.tasks.filter(passFilter),conf=conflicts(k);
+  if(!d.tasks.length&&!(CAL[k]||[]).length){$('#taskArea').innerHTML=emptyHtml();return}
+  $('#taskArea').innerHTML=view==='list'?listHtml(k,list,conf):gridHtml(k,list,conf);
+  if(view==='grid')bindDrag(k);
+}
+function emptyHtml(){
+  const fk=firstKey(),before=fk&&cur<dateOf(fk);
+  return `<div class="empty"><div class="big">${I('cal',34,1.8)}</div><b>ยังไม่มีงานในวันนี้</b>${before?`แผนเริ่มวันที่ ${fullLbl(dateOf(fk))}`:'เพิ่มงานเอง หรือให้โค้ช AI ช่วยวางแผน'}
+  <div class="btn-row">${before?`<button class="btn" data-act="first">ไปวันแรกของแผน</button>`:`<button class="btn" data-act="add">${I('plus',16)} เพิ่มงาน</button>`}<button class="btn ghost" data-act="ai">${mascot(16)} ถาม AI</button></div></div>`;
+}
+function rowHtml(t,conf){
+  const end=t.time?fromMin(toMin(t.time)+dur(t)):'';
+  const running=TIMER&&TIMER.id===t.id;
+  return `<div class="task ${t.done?'done':''} ${running?'timing':''}" data-id="${t.id}" style="--c:${color(t.cat)}">
+    <button class="chk" data-act="toggle" aria-label="เสร็จ">${I('check',14,3)}</button>
+    <div class="t-main" data-act="open">
+      <div class="t-title">${esc(t.text)}</div>
+      <div class="t-meta"><span class="cat" style="--c:${color(t.cat)}">${esc(t.cat)}</span>
+        <span class="t-time">${t.time?`${t.time}–${end}`:'ไม่กำหนดเวลา'}</span><span>${fmtDur(dur(t))}</span>
+        ${t.extra?'<span class="tag">เสริม</span>':''}
+        ${t.rolledFrom?`<span class="tag">ยกมาจาก ${dShort(t.rolledFrom)}</span>`:''}
+        ${t.appleSynced?`<span class="tag ok">${I('cal',11)} ในปฏิทิน</span>`:''}
+        ${!running&&t.logSec?`<span class="tag ok">${I('clock',11)} จับแล้ว ${fmtDur(Math.round(t.logSec/60))}</span>`:''}
+        ${t.note?`<span class="note-ic">${I('note',13)}</span>`:''}
+        ${conf.has(t.id)?`<span class="warn">${I('alert',13)} เวลาชน</span>`:''}
+      </div>
+    </div>
+    <button class="tmr-btn ${running?'run':''}" data-act="timer" aria-label="${running?'หยุดจับเวลา':'เริ่มจับเวลา'}">${running?`${I('stop',13)}<span class="tmr-time">${fmtElapsed(Date.now()-TIMER.start)}</span>`:I('play',14)}</button>
+    </div>`;
+}
+function listHtml(k,list,conf){
+  const timed=list.filter(t=>t.time).map(t=>({s:toMin(t.time),h:rowHtml(t,conf)}));
+  const evs=filter==='all'?(CAL[k]||[]).map((e,i)=>({s:toMin(e.start),h:`<div class="evt-row" data-act="evt" data-i="${i}">${I('cal',18)}<div><b>${esc(e.title)}</b>${e.start}–${e.end} · นัดจากปฏิทิน</div></div>`})):[];
+  const un=list.filter(t=>!t.time);
+  const all=[...timed,...evs].sort((a,b)=>a.s-b.s);
+  let h='';
+  if(all.length)h+=`<div class="sec-lbl">ตามเวลา</div>`+all.map(x=>x.h).join('');
+  if(un.length)h+=`<div class="sec-lbl" style="margin-top:16px">ยังไม่กำหนดเวลา · ${un.length}</div>`+un.map(t=>rowHtml(t,conf)).join('')+`<button class="link-btn" data-day="auto">${I('zap',14)} จัดเวลาให้อัตโนมัติ</button>`;
+  if(conf.size)h=`<div class="card" style="padding:12px 14px;display:flex;gap:10px;align-items:center;color:var(--red);font-size:13.5px;font-weight:600">${I('alert',18)}<span style="flex:1">มี ${conf.size} งานที่เวลาชนกัน</span><button class="pill-btn" data-day="auto">แก้ให้อัตโนมัติ</button></div>`+h;
+  return h||`<div class="empty">ไม่มีงานในตัวกรองนี้</div>`;
+}
+function layout(items){
+  items.sort((a,b)=>a.s-b.s||b.e-a.e);
+  let cluster=[],cEnd=-1,ends=[];
+  const flush=()=>{const n=Math.max(...cluster.map(x=>x.lane))+1;cluster.forEach(x=>x.n=n);cluster=[];ends=[]};
+  for(const it of items){
+    if(cluster.length&&it.s>=cEnd){flush();cEnd=-1}
+    let l=ends.findIndex(e=>e<=it.s);
+    if(l<0){l=ends.length;ends.push(it.e)}else ends[l]=it.e;
+    it.lane=l;cluster.push(it);cEnd=Math.max(cEnd,it.e);
+  }
+  if(cluster.length)flush();
+}
+let GS=6;
+function gridHtml(k,list,conf){
+  const evs=filter==='all'?(CAL[k]||[]):[];
+  const timed=list.filter(t=>t.time),un=list.filter(t=>!t.time);
+  GS=6;timed.forEach(t=>GS=Math.min(GS,Math.floor(toMin(t.time)/60)));evs.forEach(e=>GS=Math.min(GS,Math.floor(toMin(e.start)/60)));
+  const items=[...timed.map(t=>({t,s:toMin(t.time),e:toMin(t.time)+Math.max(dur(t),20)})),...evs.map((ev,i)=>({ev,i,s:toMin(ev.start),e:Math.max(toMin(ev.end),toMin(ev.start)+20)}))];
+  layout(items);
+  let h='';
+  if(un.length)h+=`<div class="tray"><div class="sec-lbl" style="margin-top:0">ยังไม่กำหนดเวลา · ${un.length}</div><div class="tray-list">${un.map(t=>`<button class="tray-it" style="--c:${color(t.cat)}" data-act="open" data-id="${t.id}">${esc(t.text)}<small>${fmtDur(dur(t))}</small></button>`).join('')}</div><button class="link-btn" data-day="auto">${I('zap',14)} จัดเวลาให้อัตโนมัติ</button></div>`;
+  h+=`<div class="tl"><div class="tl-inner" style="height:${(24-GS)*HH}px">`;
+  for(let hr=GS;hr<=24;hr++)h+=`<div class="hr" style="top:${(hr-GS)*HH}px"><span>${pad(hr%24)}:00</span></div>`;
+  items.forEach(it=>{
+    const top=(it.s-GS*60)/60*HH,ht=Math.max((it.e-it.s)/60*HH-2,22);
+    const pos=`top:${top}px;height:${ht}px;left:calc(50px + (100% - 54px) * ${it.lane} / ${it.n});width:calc((100% - 54px) / ${it.n} - 3px)`;
+    if(it.ev)h+=`<div class="blk evt" style="${pos}" data-act="evt" data-i="${it.i}"><b>${esc(it.ev.title)}</b><small>${it.ev.start}–${it.ev.end}</small></div>`;
+    else{const t=it.t;h+=`<div class="blk ${t.done?'done':''} ${conf.has(t.id)?'conf':''}" style="--c:${color(t.cat)};${pos}" data-id="${t.id}"><b>${t.done?'✓ ':''}${esc(t.text)}</b><small>${t.time}–${fromMin(toMin(t.time)+dur(t))}</small></div>`}
+  });
+  if(same(cur,today0())&&nowMin()>=GS*60)h+=`<div class="now" style="top:${(nowMin()-GS*60)/60*HH}px"></div>`;
+  return h+`</div></div><p class="hint center">แตะเพื่อแก้ไข · กดค้างแล้วลากเพื่อย้ายเวลา (ทีละ 15 นาที)</p>`;
+}
+function bindDrag(k){
+  $$('#taskArea .blk[data-id]').forEach(el=>{
+    const id=el.dataset.id;
+    let sy=0,timer=null,dragging=false,moved=false,orig=0,nm=0;
+    const begin=y=>{sy=y;moved=false;dragging=false;const t=findTask(k,id);orig=nm=toMin(t?.time)||0};
+    const startDrag=()=>{dragging=true;DRAG=true;el.classList.add('drag');haptic()};
+    const move=y=>{
+      const dy=y-sy;
+      if(!dragging){if(Math.abs(dy)>8){clearTimeout(timer);moved=true}return false}
+      if(Math.abs(dy)>3)moved=true;
+      nm=Math.min(Math.max(Math.round((orig+dy/HH*60)/15)*15,GS*60),24*60-15);
+      el.style.top=((nm-GS*60)/60*HH)+'px';
+      el.querySelector('small').textContent=fromMin(nm)+' →';
+      return true;
+    };
+    const finish=tap=>{
+      clearTimeout(timer);
+      const was=dragging;dragging=false;DRAG=false;el.classList.remove('drag');
+      if(was&&moved&&nm!==orig){
+        snapshot();const t=findTask(k,id);t.time=fromMin(nm);t.appleSynced=false;save();renderToday();toast(`ย้ายไป ${fromMin(nm)}`,true);
+      }else if(!moved&&tap)openTask(id);
+      else if(was)renderToday();
+    };
+    el.addEventListener('touchstart',e=>{if(e.touches.length>1)return;begin(e.touches[0].clientY);timer=setTimeout(startDrag,300)},{passive:true});
+    el.addEventListener('touchmove',e=>{if(move(e.touches[0].clientY)&&e.cancelable)e.preventDefault()},{passive:false});
+    el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();finish(true)});
+    el.addEventListener('touchcancel',()=>finish(false));
+    el.addEventListener('mousedown',e=>{
+      if(e.button!==0)return;
+      begin(e.clientY);startDrag();
+      const mm=ev=>move(ev.clientY);
+      const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);finish(true)};
+      document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+    });
+  });
+}
+
+/* ---- task actions ---- */
+function toggle(id){
+  const k=keyOf(cur),t=findTask(k,id);if(!t)return;
+  t.done=!t.done;save();haptic();renderToday();
+  if(t.done&&day(k).tasks.every(x=>x.done))toast('เยี่ยมมาก ครบทุกงานของวันนี้แล้ว');
+}
+function moveTask(k,id,toK,roll){
+  if(k===toK)return;
+  const d=day(k),i=d.tasks.findIndex(t=>t.id===id);if(i<0)return;
+  const [t]=d.tasks.splice(i,1);
+  if(roll){t.done=false;t.rolledFrom=t.rolledFrom||k}
+  t.appleSynced=false;
+  ensureDay(toK).tasks.push(t);
+}
+function autoSchedule(){
+  const k=keyOf(cur),d=day(k);
+  const evBusy=(CAL[k]||[]).map(e=>({s:toMin(e.start),e:toMin(e.end)}));
+  const fixed=[],toPlace=[];
+  d.tasks.filter(t=>t.time).sort((a,b)=>toMin(a.time)-toMin(b.time)).forEach(t=>{
+    const s=toMin(t.time),e=s+Math.max(dur(t),15);
+    const hit=[...evBusy,...fixed].some(b=>s<b.e&&b.s<e);
+    if(hit&&!t.done)toPlace.push(t);else fixed.push({s,e});
+  });
+  const un=d.tasks.filter(t=>!t.time&&!t.done).sort((a,b)=>a.extra-b.extra);
+  const queue=[...toPlace,...un];
+  if(!queue.length){toast('ตารางวันนี้เรียบร้อยแล้ว ไม่มีอะไรต้องจัด');return}
+  snapshot();
+  const all=[{s:720,e:780},...evBusy,...fixed];
+  let startMin=480;if(same(cur,today0()))startMin=Math.max(480,Math.ceil((nowMin()+5)/15)*15);
+  let placed=0;
+  queue.forEach(t=>{
+    if(!dur(t))t.durH=1;
+    const len=dur(t);
+    for(let s=startMin;s+len<=22*60;s+=15){
+      if(!all.some(b=>s<b.e+10&&b.s<s+len+10)){t.time=fromMin(s);t.appleSynced=false;all.push({s,e:s+len});placed++;return}
+    }
+    if(toPlace.includes(t)){t.time='';t.appleSynced=false}
+  });
+  save();renderToday();
+  toast(placed===queue.length?`จัดเวลาให้ ${placed} งานแล้ว`:`จัดได้ ${placed}/${queue.length} งาน (เวลาว่างไม่พอ)`,true);
+}
+function rollover(){
+  const k=keyOf(cur),left=day(k).tasks.filter(t=>!t.done);
+  if(!left.length){toast('ไม่มีงานค้าง เก่งมาก!');return}
+  snapshot();
+  const nk=keyOf(addDays(cur,1));
+  left.forEach(t=>moveTask(k,t.id,nk,true));
+  save();renderToday();toast(`ย้าย ${left.length} งานไป ${short(addDays(cur,1))} แล้ว`,true);
+}
+function dayAction(a){({auto:autoSchedule,roll:rollover,cal:()=>openCal()})[a]?.()}
+
+/* ---- sheets: task form ---- */
+function formHtml(t,isNew,dateVal){
+  return `<textarea class="in" id="fText" rows="2" placeholder="เช่น ฝึก Reading 2 บทความ">${esc(t.text)}</textarea>
+  <label class="f">หมวด</label>
+  <div class="pick" id="fCat">${CATS.map(x=>`<button type="button" data-v="${esc(x)}" style="--c:${color(x)}" class="${x===t.cat?'on':''}">${x}</button>`).join('')}</div>
+  <label class="f">ประเภท</label>
+  <div class="seg full" id="fType"><button type="button" data-v="main" class="${!t.extra?'on':''}">งานหลัก</button><button type="button" data-v="extra" class="${t.extra?'on':''}">งานเสริม</button></div>
+  <div class="two">
+    <div><label class="f">วันที่</label><input type="date" class="in" id="fDate" value="${dateVal}"></div>
+    <div><label class="f">เวลาเริ่ม <button type="button" class="mini" id="fClr">ไม่กำหนด</button></label><input type="time" class="in" id="fTime" value="${t.time||''}"></div>
+  </div>
+  <label class="f">ระยะเวลา</label>
+  <div class="dur"><input type="number" inputmode="numeric" class="in" id="fH" min="0" max="16" value="${t.durH}"><span>ชม.</span><input type="number" inputmode="numeric" class="in" id="fM" min="0" max="59" step="5" value="${t.durM}"><span>นาที</span></div>
+  <div class="pick sm" id="fDurQ">${[30,60,90,120,150,180].map(m=>`<button type="button" data-m="${m}">${fmtDur(m)}</button>`).join('')}</div>
+  ${isNew?`<label class="f">ทำซ้ำ</label><div class="two"><select class="in" id="fRep"><option value="1">ไม่ทำซ้ำ</option>${[2,3,4,5,6,7,10,14,21,30].map(n=>`<option value="${n}">${n} วัน</option>`).join('')}</select><select class="in" id="fPat"><option value="every">ทุกวัน</option><option value="weekday">เฉพาะวันธรรมดา</option><option value="weekend">เฉพาะวันหยุด</option></select></div>`:''}
+  <label class="f">โน้ต</label><textarea class="in" id="fNote" rows="2" placeholder="รายละเอียดเพิ่มเติม (ไม่บังคับ)">${esc(t.note)}</textarea>
+  <button class="btn" id="fSave" style="margin-top:16px">${isNew?I('plus',16)+' เพิ่มงาน':'บันทึก'}</button>`;
+}
+function bindForm(k,t,isNew){
+  const pick=sel=>$$(sel+' button').forEach(b=>b.onclick=()=>$$(sel+' button').forEach(x=>x.classList.toggle('on',x===b)));
+  pick('#fCat');pick('#fType');
+  $$('#fDurQ button').forEach(b=>b.onclick=()=>{const m=+b.dataset.m;$('#fH').value=Math.floor(m/60);$('#fM').value=m%60});
+  $('#fClr').onclick=()=>$('#fTime').value='';
+  $('#fSave').onclick=()=>{
+    const text=$('#fText').value.trim();
+    if(!text){const x=$('#fText');x.classList.add('shake');x.focus();setTimeout(()=>x.classList.remove('shake'),300);return}
+    let h=Math.max(0,+$('#fH').value||0),m=Math.max(0,+$('#fM').value||0);h+=Math.floor(m/60);m%=60;
+    const v={text,cat:$('#fCat .on')?.dataset.v||'อื่นๆ',extra:$('#fType .on').dataset.v==='extra',time:$('#fTime').value||'',durH:h,durM:m,note:$('#fNote').value.trim()};
+    const d0=parseISO($('#fDate').value)||cur;
+    if(isNew){
+      const n=+$('#fRep').value,pat=$('#fPat').value;
+      const ok=d=>pat==='every'||(pat==='weekday'?d.getDay()%6!==0:d.getDay()%6===0);
+      let made=0,d=new Date(d0),g=0;
+      while(made<n&&g<400){if(n===1||ok(d)){ensureDay(keyOf(d)).tasks.push({id:uid(),done:false,appleSynced:false,rolledFrom:'',...v});made++}d=addDays(d,1);g++}
+      save();cur=d0;closeSheet();renderToday();toast(made>1?`เพิ่ม ${made} งานแล้ว`:'เพิ่มงานแล้ว');
+    }else{
+      const nk=keyOf(d0);
+      const changed=t.time!==v.time||dur(t)!==h*60+m||nk!==k;
+      Object.assign(t,v);if(changed)t.appleSynced=false;
+      if(nk!==k)moveTask(k,t.id,nk,false);
+      save();closeSheet();renderToday();toast(nk!==k?`ย้ายไป ${short(d0)} แล้ว`:'บันทึกแล้ว');
+    }
+  };
+}
+function openTask(id){
+  const k=keyOf(cur),t=findTask(k,id);if(!t)return;
+  sheet(`${head('รายละเอียดงาน')}${formHtml(t,false,iso(cur))}
+  ${t.rolledFrom?`<p class="hint">↪ งานนี้ยกมาจาก ${dShort(t.rolledFrom)}</p>`:''}
+  ${t.appleSynced?`<div class="sync-row">${I('check',14,3)} ลงปฏิทิน Apple แล้ว<button class="mini" id="fUnsync">ยกเลิกสถานะ</button></div>`:''}
+  <div class="btn-row three"><button class="btn ghost" id="fIcs">${I('upload',15)} ${t.appleSynced?'ส่งซ้ำ':'ลงปฏิทิน'}</button><button class="btn ghost" id="fMove">${I('arrow',15)} พรุ่งนี้</button><button class="btn danger" id="fDel">${I('trash',15)} ลบ</button></div>`);
+  bindForm(k,t,false);
+  $('#fIcs').onclick=()=>{
+    if(($('#fTime').value||'')!==t.time||$('#fDate').value!==iso(cur)){toast('กดบันทึกก่อน แล้วค่อยส่งเข้าปฏิทิน');return}
+    if(!t.time){toast('ตั้งเวลาเริ่มก่อน แล้วค่อยเพิ่มลงปฏิทิน');return}
+    t.appleSynced=true;save();closeSheet();renderToday();
+    downloadICS(icsFor([{k,t}]),'task');
+  };
+  $('#fUnsync')&&($('#fUnsync').onclick=()=>{t.appleSynced=false;save();renderToday();openTask(id);toast('ยกเลิกสถานะลงปฏิทินแล้ว')});
+  $('#fMove').onclick=()=>{snapshot();moveTask(k,id,keyOf(addDays(cur,1)),true);save();closeSheet();renderToday();toast('ย้ายไปพรุ่งนี้แล้ว',true)};
+  $('#fDel').onclick=()=>{snapshot();const d=day(k);d.tasks=d.tasks.filter(x=>x.id!==id);save();closeSheet();renderToday();toast('ลบงานแล้ว',true)};
+}
+function openAdd(mode='one'){
+  sheet(`${head('เพิ่มงาน')}<div class="seg full" id="addSeg" style="margin-bottom:14px"><button data-m="one" class="${mode==='one'?'on':''}">งานเดียว</button><button data-m="bulk" class="${mode==='bulk'?'on':''}">นำเข้าหลายงาน</button></div><div id="addBody"></div>`);
+  $$('#addSeg button').forEach(b=>b.onclick=()=>{$$('#addSeg button').forEach(x=>x.classList.toggle('on',x===b));drawAdd(b.dataset.m)});
+  drawAdd(mode);
+}
+function drawAdd(mode){
+  if(mode==='one'){
+    const t={text:'',cat:'IELTS',extra:false,time:'',durH:1,durM:0,note:''};
+    $('#addBody').innerHTML=formHtml(t,true,iso(cur));bindForm(keyOf(cur),t,true);
+    setTimeout(()=>$('#fText')?.focus(),300);return;
+  }
+  $('#addBody').innerHTML=`
+    <p class="hint" style="margin-top:0">วางทีละบรรทัด: <code>วันที่ | งาน | ชั่วโมง | หมวด</code> (หมวดไม่บังคับ)</p>
+    <textarea class="in mono" id="iText" rows="6" placeholder="2026-10-16 | [IELTS] ตะลุยโจทย์ Reading | 2.5&#10;2026-10-17 | ร่าง Problem Statement | 2 | Proposal"></textarea>
+    <div class="btn-row"><label class="btn ghost">${I('download',16)} ไฟล์ CSV/Excel<input type="file" id="iFile" accept=".csv,.xlsx,.xls,.txt" hidden></label><button class="btn ghost" id="iPrev">ตรวจสอบ</button></div>
+    <button class="link-btn" id="iTpl">${I('download',14)} ดาวน์โหลดไฟล์ตัวอย่าง (CSV)</button>
+    <p class="hint">ไฟล์ต้องมีหัวคอลัมน์ Date, Task, Hours, Category (หรือ วันที่, งาน, ชั่วโมง, หมวด) · ใช้ปี พ.ศ. ได้ · งานที่นำเข้ายังไม่มีเวลา กด "จัดเวลาอัตโนมัติ" ทีหลังได้</p>
+    <div id="iPreview"></div>`;
+  $('#iPrev').onclick=()=>showPreview(parseBulk($('#iText').value));
+  $('#iFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{showPreview(await readFile(f))}catch(err){toast(err.message||'อ่านไฟล์ไม่ได้')}};
+  $('#iTpl').onclick=()=>{
+    const csv='Date,Task,Hours,Category\n2026-10-26,ทำ Cambridge 16 Test 3 (L&R),3,IELTS\n2026-10-26,ร่าง Problem Statement หน้า 2,2,Proposal\n2026-10-27,ฝึก Speaking Part 3,1.5,IELTS\n2026-10-27,วิ่งออกกำลังกาย,0.75,Sport & Life\n';
+    dl('\uFEFF'+csv,'kyoto-template.csv','text/csv;charset=utf-8');
+  };
+}
+function parseDateAny(v){
+  const mk=(y,mo,d)=>{if(y>2400)y-=543;const x=new Date(y,mo-1,d);return isNaN(x)||x.getDate()!==d?null:x};
+  if(v instanceof Date&&!isNaN(v))return new Date(v.getFullYear(),v.getMonth(),v.getDate());
+  if(typeof v==='number'&&v>20000){const d=new Date(Math.round((v-25569)*864e5));return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())}
+  const s=String(v||'').trim();let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return mk(+m[1],+m[2],+m[3]);
+  m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);if(m)return mk(+m[3],+m[2],+m[1]);
+  return null;
+}
+function mkRow(date,task,hours,cat){
+  const d=parseDateAny(date);if(!d||!String(task||'').trim())return null;
+  let text=String(task).trim(),c=String(cat||'').trim();
+  const m=text.match(/^\[([^\]]+)\]\s*/);if(m){c=c||m[1];text=text.slice(m[0].length)}
+  const found=CATS.find(x=>x.toLowerCase()===c.toLowerCase());
+  const hrs=parseFloat(String(hours??'').replace(',','.'));
+  return {k:keyOf(d),text,cat:found||c||'อื่นๆ',mins:isNaN(hrs)?60:Math.round(hrs*60)};
+}
+function parseBulk(text){
+  const rows=[],bad=[];
+  text.replace(/^\uFEFF/,'').split(/\r?\n/).forEach(line=>{
+    const L=line.trim();if(!L)return;
+    const p=(L.includes('|')?L.split('|'):L.includes('\t')?L.split('\t'):L.split(',')).map(s=>s.trim());
+    const r=mkRow(p[0],p[1],p[2],p[3]);
+    if(r)rows.push(r);else if(!/date|วันที่/i.test(L))bad.push(L);
+  });
+  return {rows,bad};
+}
+async function readFile(f){
+  const name=f.name.toLowerCase();
+  if(/\.(csv|txt)$/.test(name)){
+    const txt=await f.text();
+    if(txt.includes('|')||!window.XLSX)return parseBulk(txt);
+    return fromSheet(XLSX.read(txt.replace(/^\uFEFF/,''),{type:'string',cellDates:true}));
+  }
+  if(!window.XLSX)throw new Error('โหลดตัวอ่าน Excel ไม่ได้ (ต้องต่ออินเทอร์เน็ต)');
+  return fromSheet(XLSX.read(await f.arrayBuffer(),{type:'array',cellDates:true}));
+}
+function fromSheet(wb){
+  const json=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+  const rows=[],bad=[];
+  json.forEach((o,i)=>{
+    const g=re=>{const kk=Object.keys(o).find(x=>re.test(x.trim()));return kk?o[kk]:''};
+    const r=mkRow(g(/^(date|วันที่|วัน)$/i),g(/^(task|งาน|title|ชื่องาน)$/i),g(/^(hours?|ชั่วโมง|ชม\.?)$/i),g(/^(category|cat|หมวด|หมวดหมู่)$/i));
+    r?rows.push(r):bad.push('แถว '+(i+2));
+  });
+  return {rows,bad};
+}
+function showPreview({rows,bad}){
+  const box=$('#iPreview');
+  if(!rows.length){box.innerHTML=`<div class="prev">ไม่พบรายการที่อ่านได้ ตรวจสอบรูปแบบวันที่ (เช่น 2026-10-16)</div>`;return}
+  const by={};rows.forEach(r=>(by[r.k]=by[r.k]||[]).push(r));
+  const keys=Object.keys(by).sort();
+  box.innerHTML=`<div class="prev"><div class="prev-h">พบ ${rows.length} งาน ใน ${keys.length} วัน${bad.length?` · ข้าม ${bad.length} บรรทัดที่อ่านไม่ได้`:''}</div>
+   ${keys.slice(0,8).map(k=>`<div class="prev-d"><b>${short(dateOf(k))}</b>${by[k].map(r=>`<div>• ${esc(r.text)} <small>${fmtDur(r.mins)} · ${esc(r.cat)}</small></div>`).join('')}</div>`).join('')}
+   ${keys.length>8?`<div class="hint">…และอีก ${keys.length-8} วัน</div>`:''}
+   <button class="btn" id="iGo" style="margin-top:8px">นำเข้า ${rows.length} งาน</button></div>`;
+  $('#iGo').onclick=()=>{
+    snapshot();
+    rows.forEach(r=>ensureDay(r.k).tasks.push({id:uid(),text:r.text,cat:r.cat,time:'',durH:Math.floor(r.mins/60),durM:r.mins%60,done:false,note:'',extra:false,appleSynced:false,rolledFrom:''}));
+    save();cur=dateOf(keys[0]);closeSheet();setTab('today');toast(`นำเข้า ${rows.length} งานแล้ว`,true);
+  };
+}
+function openDayEdit(){
+  const k=keyOf(cur),d=day(k);
+  sheet(`${head('หัวข้อของวัน')}<p class="hint" style="margin-top:-6px">${fullLbl(cur)}</p>
+   <label class="f">หัวข้อ</label><input class="in" id="dHead" value="${esc(d.head)}" placeholder="เช่น Day 3: Reading T/F/NG">
+   <label class="f">รายละเอียด / โฟกัสของวัน</label><textarea class="in" id="dBody" rows="3">${esc(d.body)}</textarea>
+   <button class="btn" id="dSave" style="margin-top:16px">บันทึก</button>`);
+  $('#dSave').onclick=()=>{const x=ensureDay(k);x.head=$('#dHead').value.trim();x.body=$('#dBody').value.trim();save();closeSheet();renderToday()};
+}
+let mCur;
+function openMonth(){mCur=new Date(cur.getFullYear(),cur.getMonth(),1);drawMonth()}
+function drawMonth(){
+  const y=mCur.getFullYear(),m=mCur.getMonth(),off=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate(),T=today0();
+  let c='';for(let i=0;i<off;i++)c+='<span></span>';
+  for(let i=1;i<=days;i++){
+    const dt=new Date(y,m,i),ts=day(keyOf(dt)).tasks,st=ts.length?(ts.every(t=>t.done)?'full':'has'):'';
+    c+=`<button class="mc ${same(dt,cur)?'sel':''} ${same(dt,T)?'today':''}" data-k="${keyOf(dt)}">${i}<i class="${st}"></i></button>`;
+  }
+  sheet(`<div class="sh-head"><button class="icon-btn" id="mPrev">${I('chevL',16)}</button><h3>${TH_MF[m]} ${y}</h3><button class="icon-btn" id="mNext">${I('chevR',16)}</button></div>
+   <div class="mgrid head">${['จ','อ','พ','พฤ','ศ','ส','อา'].map(x=>`<span>${x}</span>`).join('')}</div><div class="mgrid" id="mGrid">${c}</div>
+   <div class="btn-row"><button class="btn ghost" id="mToday">ไปวันนี้</button><button class="btn ghost" id="mFirst">วันแรกของแผน</button></div>`);
+  $('#mPrev').onclick=()=>{mCur=new Date(y,m-1,1);drawMonth()};
+  $('#mNext').onclick=()=>{mCur=new Date(y,m+1,1);drawMonth()};
+  $('#mGrid').onclick=e=>{const b=e.target.closest('[data-k]');if(b){cur=dateOf(b.dataset.k);closeSheet();renderToday()}};
+  $('#mToday').onclick=()=>{cur=today0();closeSheet();renderToday()};
+  $('#mFirst').onclick=()=>{const fk=firstKey();if(fk){cur=dateOf(fk);closeSheet();renderToday()}};
+}/* ================= APPLE CALENDAR ================= */
+const utcStr=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+const icsEsc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/[,;]/g,m=>'\\'+m).replace(/\r?\n/g,'\\n');
+function icsFor(list){
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//KyotoPlan//TH','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  const stamp=utcStr(new Date());
+  list.forEach(({k,t})=>{
+    const d=dateOf(k),[h,m]=t.time.split(':').map(Number);
+    const s=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m);
+    const e=new Date(s.getTime()+Math.max(dur(t),15)*6e4);
+    L.push('BEGIN:VEVENT',`UID:${t.id}-${k}@kyotoplan`,`DTSTAMP:${stamp}`,`DTSTART:${utcStr(s)}`,`DTEND:${utcStr(e)}`,`SUMMARY:${icsEsc(`[${t.cat}] ${t.text}`)}`);
+    if(t.note)L.push(`DESCRIPTION:${icsEsc(t.note)}`);
+    L.push('BEGIN:VALARM','TRIGGER:-PT10M','ACTION:DISPLAY','DESCRIPTION:Reminder','END:VALARM','END:VEVENT');
+  });
+  L.push('END:VCALENDAR');return L.join('\r\n');
+}
+function downloadICS(text,name){
+  if(isIOS()){location.href=URL.createObjectURL(new Blob([text],{type:'text/calendar'}));return}
+  dl(text,`kyoto-${name}.ics`,'text/calendar;charset=utf-8');
+}
+function parseCalText(text,defK){
+  const out={};
+  text.split(/\r?\n/).forEach(line=>{
+    const L=line.trim();if(!L)return;
+    let k=defK;const dm=L.match(/(\d{4})-(\d{2})-(\d{2})/);if(dm)k=`d_${dm[1]}${dm[2]}${dm[3]}`;
+    const times=[...L.matchAll(/(\d{1,2})[:.](\d{2})/g)].map(m=>+m[1]*60+ +m[2]).filter(x=>x<1440);
+    if(!times.length)return;
+    const s=times[0],e=times[1]>s?times[1]:s+60;
+    const title=L.replace(/\d{4}-\d{2}-\d{2}/g,'').replace(/\d{1,2}[:.]\d{2}\s*(น\.|AM|PM|am|pm)?/g,'').replace(/[|,\t]+/g,' ').replace(/\s[-–]\s/g,' ').replace(/\s+/g,' ').trim().replace(/^[-–:]+|[-–:]+$/g,'').trim()||'นัดหมาย';
+    (out[k]=out[k]||[]).push({title,start:fromMin(s),end:fromMin(Math.min(e,1439))});
+  });
+  return out;
+}
+function importCal(text,defK){
+  const parsed=parseCalText(text,defK);let added=0,matched=0;
+  const norm=s=>s.replace(/\[[^\]]*\]/g,'').trim().toLowerCase();
+  for(const k in parsed){
+    const d=day(k),evs=[];
+    parsed[k].forEach(ev=>{
+      const t=d.tasks.find(t=>norm(t.text)===norm(ev.title));
+      if(t){t.time=ev.start;const m=Math.max(toMin(ev.end)-toMin(ev.start),15);t.durH=Math.floor(m/60);t.durM=m%60;t.appleSynced=true;matched++}
+      else{evs.push(ev);added++}
+    });
+    CAL[k]=evs;
+  }
+  save();saveCal();return {added,matched,days:Object.keys(parsed).length};
+}
+function openCal(focusPaste){
+  const k=keyOf(cur),d=day(k),timed=d.tasks.filter(t=>t.time),pending=timed.filter(t=>!t.appleSynced),evs=CAL[k]||[];
+  const sub=!timed.length?'ยังไม่มีงานที่ตั้งเวลา':pending.length?`${pending.length} งานที่ยังไม่ได้ส่ง · แจ้งเตือนก่อน 10 นาที`:`ส่งครบแล้ว ${timed.length} งาน · แตะเพื่อส่งซ้ำทั้งหมด`;
+  sheet(`${head('ปฏิทิน Apple')}<p class="hint" style="margin:-8px 0 12px">${fullLbl(cur)}</p>
+   <button class="opt" id="cExport">${I('upload',20)}<div><b>ส่งงานเข้าปฏิทิน</b><small>${sub}</small></div></button>
+   <button class="opt" id="cShortcut">${I('download',20)}<div><b>ดึงนัดจากปฏิทิน</b><small>รัน Shortcut “KyotoCal” เพื่อนำนัดมาเช็กเวลาชน</small></div></button>
+   <div class="paste ${focusPaste?'hl':''}"><label class="f">หรือวางข้อความนัดหมาย</label><textarea class="in" id="cTxt" rows="3" placeholder="ประชุมทีม | 10:00 | 11:00"></textarea><button class="btn ghost sm" id="cImport" style="margin-top:8px">นำเข้านัด (วางจากคลิปบอร์ด)</button></div>
+   ${evs.length?`<label class="f">นัดของวันนี้ (${evs.length})</label>${evs.map((e,i)=>`<div class="evt-row" style="cursor:default">${I('cal',16)}<div style="flex:1"><b>${esc(e.title)}</b>${e.start}–${e.end}</div><button class="icon-btn" data-rm="${i}">${I('x',14)}</button></div>`).join('')}<button class="link-btn danger" id="cClear">ล้างนัดทั้งหมดของวันนี้</button>`:''}
+   ${timed.some(t=>t.appleSynced)?`<button class="link-btn" id="cUnsync" style="display:flex">${I('undo',14)} ยกเลิกสถานะ "ลงปฏิทินแล้ว" ทั้งวัน</button>`:''}
+   <button class="opt" id="cOpen" style="margin-top:12px">${I('cal',20)}<div><b>เปิดแอป Calendar</b><small>ไปที่วันนี้ในแอปปฏิทิน</small></div></button>`);
+  $('#cExport').onclick=()=>{
+    if(!timed.length){toast(d.tasks.length?'กด "จัดเวลาอัตโนมัติ" ก่อน แล้วค่อยส่งเข้าปฏิทิน':'ยังไม่มีงานในวันนี้');return}
+    const list=pending.length?pending:timed;
+    list.forEach(t=>t.appleSynced=true);save();closeSheet();renderToday();
+    downloadICS(icsFor(list.map(t=>({k,t}))),iso(cur));
+  };
+  $('#cShortcut').onclick=()=>{
+    localStorage.setItem(LS.wait,JSON.stringify({k,ts:Date.now()}));
+    location.href=`shortcuts://run-shortcut?name=KyotoCal&input=text&text=${encodeURIComponent(iso(cur))}`;
+  };
+  $('#cImport').onclick=async()=>{
+    let txt=$('#cTxt').value.trim();
+    if(!txt&&navigator.clipboard?.readText){
+      try{
+        const clip=(await navigator.clipboard.readText()||'').trim();
+        if(clip){$('#cTxt').value=clip;txt=clip}
+      }catch{}
+    }
+    if(!txt){toast('ไม่พบข้อความในคลิปบอร์ด วางข้อความในช่องก่อนนะ');return $('#cTxt').focus()}
+    snapshot();const r=importCal(txt,k);closeSheet();renderToday();
+    toast(r.added+r.matched?`นำเข้า ${r.added} นัด${r.matched?` · อัปเดตเวลา ${r.matched} งาน`:''}`:'ไม่พบเวลาในข้อความ',!!(r.added+r.matched));
+  };
+  $$('#sheet [data-rm]').forEach(b=>b.onclick=()=>{CAL[k].splice(+b.dataset.rm,1);saveCal();renderToday();openCal()});
+  $('#cClear')&&($('#cClear').onclick=()=>{snapshot();delete CAL[k];saveCal();closeSheet();renderToday();toast('ล้างนัดแล้ว',true)});
+  $('#cUnsync')&&($('#cUnsync').onclick=()=>{snapshot();d.tasks.forEach(t=>t.appleSynced=false);save();renderToday();openCal();toast('ยกเลิกสถานะแล้ว',true)});
+  $('#cOpen').onclick=()=>{const s=Math.floor((new Date(cur.getFullYear(),cur.getMonth(),cur.getDate(),12).getTime()-Date.UTC(2001,0,1))/1000);location.href='calshow:'+s};
+  if(focusPaste)setTimeout(()=>$('#cTxt')?.focus(),350);
+}
+function openEvt(i){
+  const k=keyOf(cur),e=(CAL[k]||[])[i];if(!e)return;
+  sheet(`${head('นัดจากปฏิทิน')}<div class="evt-row" style="cursor:default">${I('cal',18)}<div><b>${esc(e.title)}</b>${e.start}–${e.end}</div></div>
+   <p class="hint">นัดนี้ใช้เช็กเวลาชนและเว้นช่องตอนจัดเวลาอัตโนมัติ ไม่นับเป็นงาน</p>
+   <button class="btn danger" id="eDel" style="margin-top:12px">${I('trash',16)} เอาออกจากแอปนี้</button>`);
+  $('#eDel').onclick=()=>{snapshot();CAL[k].splice(i,1);saveCal();closeSheet();renderToday();toast('เอานัดออกแล้ว',true)};
+}
+let calChecking=false;
+function checkCalWait(){
+  if(calChecking)return;
+  let w;try{w=JSON.parse(localStorage.getItem(LS.wait))}catch{}
+  if(!w||Date.now()-w.ts>10*60e3){localStorage.removeItem(LS.wait);return}
+  calChecking=true;localStorage.removeItem(LS.wait);cur=dateOf(w.k);setTab('today');
+  const fallback=()=>{openCal(true);toast('กดปุ่ม "นำเข้านัด" เพื่อวางจากคลิปบอร์ดได้เลย')};
+  if(navigator.clipboard?.readText){
+    navigator.clipboard.readText().then(txt=>{
+      const r=txt?importCal(txt,w.k):{added:0,matched:0};
+      if(r.added+r.matched){renderToday();toast(`ดึงนัดมาแล้ว ${r.added} นัด${r.matched?` · อัปเดต ${r.matched} งาน`:''}`)}else fallback();
+    }).catch(fallback).finally(()=>calChecking=false);
+  }else{fallback();calChecking=false}
+}
+
+/* ================= OVERVIEW ================= */
+function renderOverview(){
+  const k=keyOf(cur),d=day(k),T=today0();
+  const n=d.tasks.length,done=d.tasks.filter(t=>t.done).length,p=n?done/n:0;
+  let tot=0,tdone=0,doneMin=0;
+  Object.values(S.days).forEach(x=>x.tasks.forEach(t=>{tot++;if(t.done){tdone++;doneMin+=dur(t)}}));
+  const C=2*Math.PI*44,start=addDays(cur,-6);
+  const plans=[...Array(14)].map((_,i)=>{const dd=addDays(start,i),ts=day(keyOf(dd)).tasks;return {dd,pl:ts.reduce((a,t)=>a+dur(t),0),dn:ts.filter(t=>t.done).reduce((a,t)=>a+dur(t),0),all:ts.length&&ts.every(t=>t.done)}});
+  const max=Math.max(360,...plans.map(x=>x.pl));
+  const bars=plans.map(({dd,pl,dn,all})=>{
+    const col=all?'#0D9488':pl>420?'#D97706':'#0E8C7D';
+    return `<button class="bar ${same(dd,cur)?'sel':''}" data-k="${keyOf(dd)}"><span class="bar-v">${pl?+(pl/60).toFixed(1):''}</span><div class="bar-track"><div class="bar-plan" style="height:${pl/max*100}%;background:${col}2E"><div class="bar-fill" style="height:${pl?dn/pl*100:0}%;background:${col}"></div></div></div><span class="bar-d">${dd.getDate()}</span></button>`;
+  }).join('');
+  const cd=COUNTDOWNS.map(c=>{const diff=Math.ceil((parseISO(c.d)-T)/864e5);const v=diff<0?'ผ่านแล้ว':diff<=120?`${diff} วัน`:`${Math.round(diff/30.4)} เดือน`;return `<div class="cd"><small>${c.l}</small><b>${v}</b><span>${c.sub}</span></div>`}).join('');
+  const curPh=phaseOf(T);
+  const phases=PHASES.map(ph=>{
+    const s=parseISO(ph.s),e=parseISO(ph.e),isCur=curPh===ph,past=T>e;
+    let pt=0,pd=0;Object.entries(S.days).forEach(([kk,x])=>{const dd=dateOf(kk);if(dd>=s&&dd<=e)x.tasks.forEach(t=>{pt++;if(t.done)pd++})});
+    return `<details class="phase ${isCur?'cur':''}" ${isCur||(!curPh&&ph.n===1)?'open':''}><summary>
+      <div class="ph-badge">PHASE ${ph.n} · ${isCur?'กำลังทำ':past?'ผ่านมาแล้ว':'ถัดไป'}</div>
+      <div class="ph-title">${ph.t}</div><div class="ph-date">${ph.d}</div>
+      ${pt?`<div class="ph-prog"><div class="pbar"><span style="width:${pd/pt*100}%"></span></div>${pd}/${pt} งาน</div>`:''}
+    </summary><div class="ph-body">${ph.b.map(b=>'• '+b).join('<br>')}<div class="milestone">${I('target',14)} ${ph.m}</div></div></details>`;
+  }).join('');
+  $('#ovBody').innerHTML=`
+   <div class="card hero">
+     <div class="ring-w"><svg viewBox="0 0 100 100" width="120" height="120"><defs><linearGradient id="rg"><stop offset="0" stop-color="#2DBCA4"/><stop offset="1" stop-color="#0E8C7D"/></linearGradient></defs><circle cx="50" cy="50" r="44" stroke="#E8E1D3" stroke-width="10" fill="none"/><circle cx="50" cy="50" r="44" stroke="url(#rg)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .6s"/></svg><div class="ring-t"><b>${Math.round(p*100)}%</b><small>${same(cur,T)?'วันนี้':short(cur)}</small></div></div>
+     <div><div class="stat"><b>${done}/${n}</b><small>งานของ${same(cur,T)?'วันนี้':short(cur)}</small></div>
+     <div class="stat"><b>${+(doneMin/60).toFixed(1)} ชม.</b><small>ทำไปแล้วทั้งแผน</small></div>
+     <div class="stat"><b>${tot?Math.round(tdone/tot*100):0}%</b><small>ความคืบหน้าทั้งแผน (${tdone}/${tot})</small></div></div>
+   </div>
+   <div class="card"><div class="card-h"><b>ชั่วโมงรายวัน</b><span class="legend"><span><i style="background:#0E8C7D"></i>แผน</span><span><i style="background:#0D9488"></i>ครบ</span><span><i style="background:#D97706"></i>เกิน 7 ชม.</span></span></div><div class="chart" id="chart">${bars}</div><p class="hint">แท่งจาง = ชั่วโมงตามแผน · แท่งเข้ม = ทำเสร็จแล้ว · แตะเพื่อเปิดวันนั้น</p></div>
+   <div class="sec-title">นับถอยหลัง</div><div class="cd-grid">${cd}</div>
+   <div class="sec-title">แผน 7 ระยะ</div>${phases}
+   <a class="opt" href="${SHEET}" target="_blank" rel="noopener" style="margin-top:8px">${I('ext',20)}<div><b>เปิด Google Sheet ฉบับเต็ม</b><small>แผนละเอียดทั้งหมด</small></div></a>`;
+  $('#chart').onclick=e=>{const b=e.target.closest('[data-k]');if(b){cur=dateOf(b.dataset.k);setTab('today')}};
+}
+
+/* ================= AI COACH ================= */
+function sysPrompt(){
+  const k=keyOf(cur),d=day(k),ph=phaseOf(cur);
+  const next=[1,2,3].map(i=>{const dd=addDays(cur,i),x=day(keyOf(dd));return `- ${iso(dd)}: ${x.head||'(ไม่มีหัวข้อ)'} — ${x.tasks.length} งาน, ${fmtDur(x.tasks.reduce((a,t)=>a+dur(t),0))}`}).join('\n');
+  return `คุณคือ "โค้ชวางแผน" ส่วนตัวของผู้ใช้ ที่กำลังเตรียมตัว:
+- สอบ IELTS ให้ได้ 6.5 (สอบจริงปลาย ธ.ค. 2026)
+- เขียน Research Proposal ด้าน Urban Management (Kyoto University, Graduate School of Engineering)
+- ยื่นทุน ADB-JSP (พ.ค.–มิ.ย. 2027) และเปิดเทอม เม.ย. 2028
+
+วันนี้ (จริง): ${iso(today0())} (${TH_DF[today0().getDay()]}) เวลา ${fromMin(nowMin())}
+วันที่กำลังวางแผน: ${iso(cur)} (${TH_DF[cur.getDay()]})
+เฟส: ${ph?`Phase ${ph.n} – ${ph.t} (เป้าหมาย: ${ph.m})`:'นอกช่วงเฟส'}
+หัวข้อวัน: ${d.head||'-'}
+รายละเอียด: ${d.body||'-'}
+งานของวันนั้น (JSON): ${JSON.stringify(d.tasks.map(t=>({text:t.text,cat:t.cat,time:t.time,durH:t.durH,durM:t.durM,done:t.done,type:t.extra?'extra':'main'})))}
+นัดในปฏิทิน: ${JSON.stringify(CAL[k]||[])}
+3 วันถัดไป:
+${next}
+
+หน้าที่ของคุณ:
+1. วิเคราะห์ภาระงาน ความสมดุล และเวลาที่ชนกัน
+2. ปรับแผนเมื่อผู้ใช้ขอ (เช่น เหนื่อย มีธุระ อยากเร่ง เพิ่มความเข้มข้น แตกงานย่อยแบบ Agile) โดยยังรักษาเป้าหมายหลัก
+3. โค้ชและให้กำลังใจแบบกระชับ เป็นกันเอง ตอบเป็นภาษาไทย
+
+กติกา:
+- หมวดที่ใช้ได้: ${CATS.join(', ')}
+- เว้นพักเที่ยง 12:00–13:00 และห้ามทับนัดในปฏิทิน
+- ตอบเป็น JSON เท่านั้น ตามรูปแบบ:
+{"reply":"ข้อความตอบ","shouldUpdatePlan":false,"proposedHead":"","proposedBody":"","proposedTasks":[{"text":"","cat":"IELTS","time":"HH:MM","durH":0,"durM":0}]}
+- ตั้ง shouldUpdatePlan เป็น true เฉพาะเมื่อเสนอแผนใหม่ของวันนั้น โดย proposedTasks คือ "งานหลักทั้งหมด" หลังปรับ (ไม่ต้องใส่งานเสริม และไม่ต้องใส่ [หมวด] ใน text) ผู้ใช้จะเลือกเองว่าจะแทนที่แผนเดิมหรือเพิ่มต่อท้าย`;
+}
+function parseAI(raw){
+  let o=null;try{o=JSON.parse(raw)}catch{const m=raw.match(/\{[\s\S]*\}/);if(m)try{o=JSON.parse(m[0])}catch{}}
+  return o||{reply:raw||'(ไม่มีคำตอบ)'};
+}
+async function askGemini(){
+  const key=localStorage.getItem(LS.key),model=getModel();
+  const hist=CHAT.filter(m=>!m.err).slice(-12);while(hist.length&&hist[0].role!=='user')hist.shift();
+  const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({systemInstruction:{parts:[{text:sysPrompt()}]},contents:hist.map(m=>({role:m.role,parts:[{text:m.text}]})),generationConfig:{responseMimeType:'application/json',temperature:.7}})
+  });
+  if(!res.ok){let msg='';try{msg=(await res.json()).error?.message||''}catch{}const e=new Error(msg);e.status=res.status;throw e}
+  const j=await res.json();
+  return parseAI((j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join(''));
+}
+function errMsg(e){
+  if(e.status===400&&/key/i.test(e.message))return 'API Key ไม่ถูกต้อง ลองตรวจสอบในแท็บตั้งค่า';
+  if(e.status===403)return 'API Key ไม่มีสิทธิ์ใช้งาน ลองสร้าง Key ใหม่';
+  if(e.status===404)return `ไม่พบโมเดล "${getModel()}" ไปที่แท็บตั้งค่า กด "ทดสอบ Key" เพื่อโหลดรายชื่อโมเดลที่ใช้ได้`;
+  if(e.status===429)return 'ใช้งานเกินโควตาชั่วคราว รอสักครู่แล้วลองใหม่';
+  if(!e.status)return 'เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+  return `เกิดข้อผิดพลาด (${e.status}) ${e.message||''}`;
+}
+async function send(text){
+  text=(text??$('#chatIn').value).trim();if(!text||BUSY)return;
+  if(!localStorage.getItem(LS.key)){toast('ใส่ Gemini API Key ก่อนนะ');$('#aiKey')?.focus();return}
+  $('#chatIn').value='';$('#chatIn').style.height='';
+  CHAT.push({role:'user',text});BUSY=true;renderAI();
+  try{
+    const o=await askGemini();
+    const m={role:'model',text:o.reply||'',k:keyOf(cur)};
+    if(o.shouldUpdatePlan&&Array.isArray(o.proposedTasks)&&o.proposedTasks.length)m.proposal={head:o.proposedHead||'',body:o.proposedBody||'',tasks:o.proposedTasks};
+    CHAT.push(m);
+  }catch(e){CHAT.push({role:'model',text:errMsg(e),err:true})}
+  BUSY=false;saveChat();renderAI();
+}
+function applyProposal(i,mode){
+  const m=CHAT[i];if(!m?.proposal)return;
+  snapshot();
+  const d=ensureDay(m.k),old=d.tasks;
+  const prop=m.proposal.tasks.map(x=>normTask({...x,id:null,done:false,note:'',appleSynced:false,rolledFrom:''},false));
+  let n=prop.length;
+  if(mode==='replace'){
+    prop.forEach(t=>{const o=old.find(o=>!o.extra&&o.text===t.text);if(o){t.id=o.id;t.done=o.done;t.note=o.note;t.rolledFrom=o.rolledFrom;t.appleSynced=o.appleSynced&&o.time===t.time&&dur(o)===dur(t)}});
+    d.tasks=[...prop,...old.filter(t=>t.extra)];
+    if(m.proposal.head)d.head=m.proposal.head;if(m.proposal.body)d.body=m.proposal.body;
+  }else{
+    const ex=new Set(old.map(t=>t.text));const add=prop.filter(t=>!ex.has(t.text));n=add.length;
+    d.tasks.push(...add);
+  }
+  m.applied=mode;m.appliedN=n;save();saveChat();renderAI();
+  toast(mode==='replace'?`แทนที่แผน ${short(dateOf(m.k))} แล้ว`:`เพิ่ม ${n} งานต่อท้ายแล้ว`,true);
+}
+function msgHtml(m,i){
+  const txt=esc(m.text).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  if(m.role==='user')return `<div class="msg me">${txt}</div>`;
+  let h=`<div class="msg-row">${mascot(24)}<div class="msg ai ${m.err?'err':''}">${txt}`;
+  if(m.proposal&&!m.dismissed){
+    const p=m.proposal;
+    h+=`<div class="prop"><div class="prop-h">ข้อเสนอแผน · ${short(dateOf(m.k))}</div>${p.head?`<b>${esc(p.head)}</b>`:''}
+     <ul>${p.tasks.map(t=>`<li>${esc(t.time||'--:--')} · ${esc(String(t.text||'').replace(/^\[[^\]]+\]\s*/,''))} <small>${fmtDur((+t.durH||0)*60+(+t.durM||0))} · ${esc(t.cat||'')}</small></li>`).join('')}</ul>
+     ${m.applied?`<div class="applied">✓ ${m.applied==='replace'?'แทนที่แผนเดิมแล้ว':`เพิ่มต่อท้ายแล้ว (${m.appliedN} งาน)`}</div>`:`<div class="btn-row three"><button class="btn sm" data-apply="${i}" data-mode="replace">แทนที่</button><button class="btn ghost sm" data-apply="${i}" data-mode="append">เพิ่มต่อท้าย</button><button class="btn ghost sm" data-dismiss="${i}">ไม่ใช้</button></div>`}</div>`;
+  }
+  return h+'</div></div>';
+}
+function renderAI(){
+  const key=localStorage.getItem(LS.key),d=day(keyOf(cur));
+  let h='';
+  if(!key)h+=`<div class="card"><div class="set-title">${mascot(20)} เริ่มใช้โค้ช AI</div><p class="hint">ใส่ Gemini API Key ครั้งเดียว ระบบจะเก็บไว้ในเครื่องนี้เท่านั้น</p>
+    <input id="aiKey" class="in" type="password" placeholder="AIza…" style="margin-top:10px"><button class="btn" id="aiKeySave" style="margin-top:10px">บันทึก Key</button>
+    <p class="hint"><a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">รับ API Key ฟรีที่ Google AI Studio →</a></p></div>`;
+  h+=`<div class="ctx">${I('cal',14)} คุยในบริบทของ <b>${short(cur)}</b> · ${d.tasks.length} งาน<span class="model-tag">${esc(getModel())}</span></div>`;
+  if(!CHAT.length)h+=`<div class="welcome"><div class="big">${mascot(48)}</div><b>สวัสดี! วันนี้ให้ช่วยอะไรดี</b>ถามเรื่องแผน ขอปรับตาราง หรือให้ช่วยโค้ชก็ได้<br>ถ้าเสนอแผนใหม่ คุณเลือกได้ว่าจะแทนที่หรือเพิ่มต่อท้าย</div>`;
+  h+=`<div class="msgs">${CHAT.map(msgHtml).join('')}${BUSY?'<div class="msg ai typing"><i></i><i></i><i></i></div>':''}</div>`;
+  if(!BUSY)h+=`<div class="qp">${QP.map(([l,q])=>`<button data-q="${esc(q)}">${l}</button>`).join('')}</div>`;
+  $('#aiBody').innerHTML=h;
+  $('#sendBtn').disabled=BUSY;
+  if($('#aiKeySave'))$('#aiKeySave').onclick=()=>{const v=$('#aiKey').value.trim();if(!v)return;localStorage.setItem(LS.key,v);renderAI();toast('บันทึก Key แล้ว')};
+  requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}));
+}
+$('#aiBody').addEventListener('click',e=>{
+  const q=e.target.closest('[data-q]');if(q)return send(q.dataset.q);
+  const a=e.target.closest('[data-apply]');if(a)return applyProposal(+a.dataset.apply,a.dataset.mode);
+  const x=e.target.closest('[data-dismiss]');if(x){CHAT[+x.dataset.dismiss].dismissed=true;saveChat();renderAI()}
+});
+
+/* ================= SETTINGS ================= */
+function renderSettings(){
+  const key=localStorage.getItem(LS.key)||'',model=getModel(),list=getModels(),custom=!list.includes(model);
+  $('#setBody').innerHTML=`
+   <div class="card"><div class="set-title">${mascot(20)} โค้ช AI (Gemini)</div>
+     <label class="f">API Key</label><div class="row"><input id="sKey" class="in" type="password" value="${esc(key)}" placeholder="AIza…"><button class="icon-btn" id="sEye">${I('eye',16)}</button></div>
+     <div class="btn-row"><button class="btn ghost sm" id="sTest">ทดสอบ Key</button><button class="btn danger sm" id="sClearKey">ลบ Key</button></div>
+     <label class="f">โมเดล</label><select id="sModel" class="in">${list.map(m=>`<option ${m===model?'selected':''}>${esc(m)}</option>`).join('')}<option value="__c" ${custom?'selected':''}>กำหนดเอง…</option></select>
+     <input id="sModelC" class="in" style="margin-top:8px;${custom?'':'display:none'}" value="${custom?esc(model):''}" placeholder="ชื่อโมเดล เช่น gemini-2.5-pro">
+     <button class="btn" id="sSaveAI" style="margin-top:12px">บันทึก</button>
+     <p class="hint">กด "ทดสอบ Key" เพื่อตรวจว่า Key ใช้ได้ และโหลดรายชื่อโมเดลที่ใช้ได้จริง · Key เก็บในเครื่องนี้เท่านั้น · <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">รับ Key ฟรี</a></p></div>
+   <div class="card"><div class="set-title">${I('cal')} เชื่อมปฏิทิน Apple</div>
+     <p class="hint">สร้าง Shortcut ชื่อ <b>KyotoCal</b> ให้ทำงานดังนี้: รับข้อความวันที่ → ค้นหา Calendar Events ของวันนั้น → จัดแต่ละรายการเป็น <code>ชื่อนัด | HH:MM | HH:MM</code> → คัดลอกไปยังคลิปบอร์ด</p>
+     <p class="hint">ใช้งานจากปุ่ม “ปฏิทิน Apple” ในหน้าวันนี้ เมื่อสลับกลับมาที่แอป กดปุ่ม “นำเข้านัด” เพื่อวางและนำเข้าตารางในปุ่มเดียวได้เลย</p></div>
+   <div class="card"><div class="set-title">${I('note')} ข้อมูล</div><div style="margin-top:10px"></div>
+     <button class="opt" id="sBackup">${I('download',20)}<div><b>สำรองข้อมูล</b><small>ดาวน์โหลดไฟล์ .json</small></div></button>
+     <label class="opt">${I('upload',20)}<div><b>กู้คืนจากไฟล์สำรอง</b><small>แทนที่ข้อมูลปัจจุบัน</small></div><input type="file" id="sRestore" accept=".json,application/json" hidden></label>
+     <a class="opt" href="${SHEET}" target="_blank" rel="noopener">${I('ext',20)}<div><b>Google Sheet ฉบับเต็ม</b><small>เปิดในแท็บใหม่</small></div></a>
+     <button class="opt danger" id="sReset">${I('trash',20)}<div><b>รีเซ็ตเป็นแผนเริ่มต้น</b><small>ลบงานและนัดทั้งหมด (Key ยังอยู่)</small></div></button></div>
+   <p class="hint center" style="margin-bottom:12px">Kyoto Plan · v13.3</p>`;
+  $('#sEye').onclick=()=>{const i=$('#sKey');i.type=i.type==='password'?'text':'password'};
+  $('#sModel').onchange=()=>{$('#sModelC').style.display=$('#sModel').value==='__c'?'':'none'};
+  $('#sSaveAI').onclick=()=>{
+    const k=$('#sKey').value.trim();k?localStorage.setItem(LS.key,k):localStorage.removeItem(LS.key);
+    const m=$('#sModel').value==='__c'?$('#sModelC').value.trim():$('#sModel').value;if(m)localStorage.setItem(LS.model,m);
+    toast('บันทึกการตั้งค่าแล้ว');
+  };
+  $('#sClearKey').onclick=()=>confirmSheet('ลบ API Key?','โค้ช AI จะใช้งานไม่ได้จนกว่าจะใส่ Key ใหม่','ลบ Key',()=>{localStorage.removeItem(LS.key);localStorage.removeItem(LS.models);renderSettings();toast('ลบ Key แล้ว')},true);
+  $('#sTest').onclick=async()=>{
+    const k=$('#sKey').value.trim();if(!k){toast('ใส่ Key ก่อน');return}
+    const b=$('#sTest');b.disabled=true;b.textContent='กำลังตรวจสอบ…';
+    try{
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(k)}`);
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(j.error?.message||('HTTP '+r.status));
+      const names=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace(/^models\//,'')).filter(n=>/gemini/i.test(n));
+      names.sort((a,b)=>(/flash/.test(b)-/flash/.test(a))||b.localeCompare(a));
+      localStorage.setItem(LS.key,k);
+      if(names.length){localStorage.setItem(LS.models,JSON.stringify(names));if(!names.includes(getModel()))localStorage.setItem(LS.model,names[0])}
+      renderSettings();toast(`Key ใช้ได้ · พบ ${names.length} โมเดล`);
+    }catch(e){b.disabled=false;b.textContent='ทดสอบ Key';toast('Key ใช้ไม่ได้: '+(e.message||'เชื่อมต่อไม่ได้'))}
+  };
+  $('#sBackup').onclick=()=>dl(JSON.stringify({v:13,plan:S,cal:CAL},null,1),`kyoto-plan-backup-${iso(today0())}.json`,'application/json');
+  $('#sRestore').onchange=async e=>{
+    const f=e.target.files[0];if(!f)return;
+    try{const j=JSON.parse(await f.text());const plan=j.plan?.days?{days:migrate(j.plan.days)?.days||{}}:migrate(j);if(!plan||!Object.keys(plan.days).length)throw 0;
+      confirmSheet('กู้คืนข้อมูล?','ข้อมูลปัจจุบันจะถูกแทนที่ด้วยไฟล์สำรอง','กู้คืน',()=>{snapshot();S=plan;CAL=migrateCal(j.cal||{});save();saveCal();refresh();toast('กู้คืนแล้ว',true)});
+    }catch{toast('ไฟล์สำรองไม่ถูกต้อง')}
+    e.target.value='';
+  };
+  $('#sReset').onclick=()=>confirmSheet('รีเซ็ตแผน?','งาน ความคืบหน้า และนัดที่นำเข้าทั้งหมดจะถูกลบ แล้วกลับไปเป็นแผนเริ่มต้น','รีเซ็ต',()=>{snapshot();S={days:seedDays()};CAL={};save();saveCal();refresh();toast('รีเซ็ตแล้ว',true)},true);
+}
+
+/* ================= NAV & EVENTS ================= */
+function setTab(t){
+  tab=t;
+  $$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+t));
+  $$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  $('#fab').style.display=t==='today'?'':'none';
+  $('#composer').style.display=t==='ai'?'':'none';
+  if(t!=='ai')window.scrollTo(0,0);
+  refresh();
+}
+$('#nav').innerHTML=[['today','home','วันนี้'],['overview','chart','ภาพรวม'],['ai','coach','โค้ช AI'],['settings','gear','ตั้งค่า']].map(([t,ic,l])=>`<button data-t="${t}">${I(ic,22)}<span>${l}</span></button>`).join('');
+$('#nav').onclick=e=>{const b=e.target.closest('[data-t]');if(b)setTab(b.dataset.t)};
+$('#fab').innerHTML=I('plus',26,2.5);
+$('#sendBtn').innerHTML=I('send',18);
+$('#monthIc').innerHTML=I('chevD',18);
+$('#prevW').innerHTML=I('chevL',16);$('#nextW').innerHTML=I('chevR',16);
+$('#dayActions').innerHTML=`<button class="chip" data-day="auto">${I('zap',18)}<span>จัดเวลาอัตโนมัติ</span></button><button class="chip" data-day="roll">${I('arrow',18)}<span>ย้ายงานค้าง</span></button><button class="chip" data-day="cal">${I('cal',18)}<span>ปฏิทิน Apple</span></button>`;
+
+$('#fab').onclick=()=>openAdd();
+$('#askBar').onclick=()=>{setTab('ai');requestAnimationFrame(()=>$('#chatIn')?.focus())};
+$('#monthBtn').onclick=openMonth;
+$('#todayBtn').onclick=()=>{cur=today0();renderToday()};
+$('#prevW').onclick=()=>{cur=addDays(cur,-7);renderToday()};
+$('#nextW').onclick=()=>{cur=addDays(cur,7);renderToday()};
+$('#week').onclick=e=>{const b=e.target.closest('[data-k]');if(b){cur=dateOf(b.dataset.k);renderToday()}};
+$('#dayCard').onclick=openDayEdit;
+$('#dayActions').onclick=e=>{const b=e.target.closest('[data-day]');if(b)dayAction(b.dataset.day)};
+$('#viewSeg').onclick=e=>{
+  const b=e.target.closest('[data-v]');if(!b||b.dataset.v===view)return;view=b.dataset.v;renderToday();
+  if(view==='grid'){const f=$('#taskArea .blk');if(f)window.scrollTo({top:f.getBoundingClientRect().top+scrollY-280,behavior:'smooth'})}
+};
+$('#filterSeg').onclick=e=>{const b=e.target.closest('[data-f]');if(b){filter=b.dataset.f;renderToday()}};
+$('#taskArea').addEventListener('click',e=>{
+  const a=e.target.closest('[data-act],[data-day]');if(!a)return;
+  if(a.dataset.day)return dayAction(a.dataset.day);
+  const id=a.dataset.id||a.closest('[data-id]')?.dataset.id;
+  ({toggle:()=>toggle(id),open:()=>openTask(id),evt:()=>openEvt(+a.dataset.i),add:()=>openAdd(),ai:()=>setTab('ai'),timer:()=>timerAction(id),
+    first:()=>{const fk=firstKey();if(fk){cur=dateOf(fk);renderToday()}else toast('ยังไม่มีงานในแผน')}})[a.dataset.act]?.();
+});
+$('#bd').onclick=closeSheet;
+$('#sheet').addEventListener('click',e=>{if(e.target.closest('[data-close]'))closeSheet()});
+$('#toastUndo').onclick=undo;
+$('#clearChat').onclick=()=>{if(!CHAT.length)return;confirmSheet('ล้างแชตทั้งหมด?','ประวัติการคุยกับโค้ชจะหายไป (แผนไม่ถูกแก้)','ล้างแชต',()=>{CHAT=[];saveChat();renderAI()},true)};
+$('#sendBtn').onclick=()=>send();
+$('#chatIn').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,120)+'px'});
+$('#chatIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&window.matchMedia('(hover:hover)').matches){e.preventDefault();send()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkCalWait();if(tab==='today'&&!DRAG)renderToday()}});
+window.addEventListener('focus',checkCalWait);
+
+/* ================= INIT ================= */
+load();
+if(TIMER)ensureTick();
+setTab('today');
+checkCalWait();
+setInterval(()=>{if(tab==='today'&&view==='grid'&&!DRAG&&!$('#sheet').classList.contains('on'))renderToday()},60000);
+</script>
+</body>
+</html>
